@@ -10,8 +10,8 @@ import gym
 import numpy as np
 import matplotlib.pyplot as plt
 
-from lib.gym_env import *
-from lib.model import *
+from toolkit.gym_env import *
+from toolkit.model import *
 
 def vectorize_action(action, action_space):
     # Given a scalar action, return a one-hot encoded action
