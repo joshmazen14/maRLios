@@ -5,13 +5,32 @@ from nes_py.wrappers import JoypadSpace
 from gym_super_mario_bros import SuperMarioBrosEnv
 from tqdm import tqdm
 import pickle 
-from gym_super_mario_bros.actions import RIGHT_ONLY
+from gym_super_mario_bros.actions import RIGHT_ONLY, SIMPLE_MOVEMENT, COMPLEX_MOVEMENT
 import gym
 import numpy as np
 import matplotlib.pyplot as plt
 
 from toolkit.gym_env import *
 from toolkit.model import *
+
+def save_model(agent):
+    with open("ending_position.pkl", "wb") as f:
+            pickle.dump(agent.ending_position, f)
+    with open("num_in_queue.pkl", "wb") as f:
+        pickle.dump(agent.num_in_queue, f)
+    with open("total_rewards.pkl", "wb") as f:
+        pickle.dump(total_rewards, f)
+    if agent.double_dq:
+        torch.save(agent.local_net.state_dict(), "dq1.pt")
+        torch.save(agent.target_net.state_dict(), "dq2.pt")
+    else:
+        torch.save(agent.dqn.state_dict(), "dq.pt")  
+    torch.save(agent.STATE_MEM,  "STATE_MEM.pt")
+    torch.save(agent.ACTION_MEM, "ACTION_MEM.pt")
+    torch.save(agent.REWARD_MEM, "REWARD_MEM.pt")
+    torch.save(agent.STATE2_MEM, "STATE2_MEM.pt")
+    torch.save(agent.DONE_MEM,   "DONE_MEM.pt")
+
 
 def vectorize_action(action, action_space):
     # Given a scalar action, return a one-hot encoded action
@@ -34,7 +53,7 @@ def make_env(env):
     env = ImageToPyTorch(env)
     env = BufferWrapper(env, 4)
     env = ScaledFloatFrame(env)
-    return JoypadSpace(env, RIGHT_ONLY)
+    return JoypadSpace(env, SIMPLE_MOVEMENT) # change here for dif movement
 
 def run(training_mode, pretrained):
    
@@ -94,8 +113,10 @@ def run(training_mode, pretrained):
             if terminal:
                 break
         
-        total_rewards.append(total_reward)
+        if ep_num % 500 == 0 and training_mode:
+            save_model(agent)
 
+        total_rewards.append(total_reward)
         with open('total_reward.txt', 'a') as f:
             f.write("Total reward after episode {} is {}\n".format(ep_num + 1, total_rewards[-1]))
             if (ep_num%100 == 0):
@@ -103,25 +124,7 @@ def run(training_mode, pretrained):
                 f.write("{} current time at episode {}\n".format(datetime.datetime.now(), ep_num+1))
                 f.write("==================\n")
             #print("Total reward after episode {} is {}".format(ep_num + 1, total_rewards[-1]))
-            num_episodes += 1
-    
-    if training_mode:
-        with open("ending_position.pkl", "wb") as f:
-            pickle.dump(agent.ending_position, f)
-        with open("num_in_queue.pkl", "wb") as f:
-            pickle.dump(agent.num_in_queue, f)
-        with open("total_rewards.pkl", "wb") as f:
-            pickle.dump(total_rewards, f)
-        if agent.double_dq:
-            torch.save(agent.local_net.state_dict(), "dq1.pt")
-            torch.save(agent.target_net.state_dict(), "dq2.pt")
-        else:
-            torch.save(agent.dqn.state_dict(), "dq.pt")  
-        torch.save(agent.STATE_MEM,  "STATE_MEM.pt")
-        torch.save(agent.ACTION_MEM, "ACTION_MEM.pt")
-        torch.save(agent.REWARD_MEM, "REWARD_MEM.pt")
-        torch.save(agent.STATE2_MEM, "STATE2_MEM.pt")
-        torch.save(agent.DONE_MEM,   "DONE_MEM.pt")
+            num_episodes += 1 
     
     env.close()
     fh.close()
