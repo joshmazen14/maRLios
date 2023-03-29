@@ -66,7 +66,7 @@ def save_checkpoint(agent, total_rewards, run_id):
     torch.save(agent.STATE2_MEM, f"STATE2_MEM-{run_id}.pt")
     torch.save(agent.DONE_MEM,   f"DONE_MEM-{run_id}.pt")
 
-def main(training_mode=True, pretrained=False, lr=0.00025, gamma=0.90, exploration_decay=0.99,
+def main(training_mode=True, pretrained=False, lr=0.00025, gamma=0.90, exploration_decay=0.99, exploration_min=0.02,
         mario_env='SuperMarioBros-1-1-v0', actions=SIMPLE_MOVEMENT, num_episodes=10, run_id=None):
    
     run_id = run_id or generate_epoch_time_id()
@@ -90,7 +90,7 @@ def main(training_mode=True, pretrained=False, lr=0.00025, gamma=0.90, explorati
                      lr=lr,
                      dropout=0.,
                      exploration_max=1.0,
-                     exploration_min=0.02,
+                     exploration_min=exploration_min,
                      exploration_decay=exploration_decay,
                      double_dq=True,
                      pretrained=pretrained,
@@ -162,6 +162,7 @@ if __name__ == "__main__":
     parser.add_argument("--lr", type=float, default=0.00025, help="Learning rate (default: 0.00025)")
     parser.add_argument("--gamma", type=float, default=0.90, help="Discount factor (default: 0.90)")
     parser.add_argument("--exploration-decay", type=float, default=0.99, help="Exploration decay (default: 0.99)")
+    parser.add_argument("--exploration-min", type=float, default=0.02, help="Exploration minimum (default: 0.02)")
     parser.add_argument("--mario-env", type=str, default='SuperMarioBros-1-1-v0', help="Mario environment (default: 'SuperMarioBros-1-1-v0')")
     parser.add_argument("--actions", type=str, default='SIMPLE_MOVEMENT', help="Actions (default: 'SIMPLE_MOVEMENT')")
     parser.add_argument("--num-episodes", type=int, default=10, help="Number of episodes (default: 10)")
@@ -180,6 +181,7 @@ if __name__ == "__main__":
          lr=args.lr,
          gamma=args.gamma,
          exploration_decay=args.exploration_decay,
+         exploration_min=args.exploration_min,
          mario_env=args.mario_env,
          actions=actions,
          num_episodes=args.num_episodes,
