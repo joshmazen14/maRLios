@@ -12,25 +12,14 @@ import matplotlib.pyplot as plt
 
 from toolkit.gym_env import *
 from toolkit.model import *
+import argparse
+import time
+import ast
 
-def save_model(agent):
-    with open("ending_position.pkl", "wb") as f:
-            pickle.dump(agent.ending_position, f)
-    with open("num_in_queue.pkl", "wb") as f:
-        pickle.dump(agent.num_in_queue, f)
-    with open("total_rewards.pkl", "wb") as f:
-        pickle.dump(total_rewards, f)
-    if agent.double_dq:
-        torch.save(agent.local_net.state_dict(), "dq1.pt")
-        torch.save(agent.target_net.state_dict(), "dq2.pt")
-    else:
-        torch.save(agent.dqn.state_dict(), "dq.pt")  
-    torch.save(agent.STATE_MEM,  "STATE_MEM.pt")
-    torch.save(agent.ACTION_MEM, "ACTION_MEM.pt")
-    torch.save(agent.REWARD_MEM, "REWARD_MEM.pt")
-    torch.save(agent.STATE2_MEM, "STATE2_MEM.pt")
-    torch.save(agent.DONE_MEM,   "DONE_MEM.pt")
-
+action_mapping = {
+    'SIMPLE_MOVEMENT': SIMPLE_MOVEMENT,
+    'LEFT_ONLY': RIGHT_ONLY
+}
 
 def vectorize_action(action, action_space):
     # Given a scalar action, return a one-hot encoded action
@@ -44,26 +33,49 @@ def show_state(env, ep=0, info=""):
     plt.title("Episode: %d %s" % (ep, info))
     plt.axis('off')
 
-    display.clear_output(wait=True)
-    display.display(plt.gcf())
+    # display(plt.gcf(), clear=True)
 
-def make_env(env):
+def make_env(env, actions=SIMPLE_MOVEMENT):
     env = MaxAndSkipEnv(env)
     env = ProcessFrame84(env)
     env = ImageToPyTorch(env)
     env = BufferWrapper(env, 4)
     env = ScaledFloatFrame(env)
-    return JoypadSpace(env, SIMPLE_MOVEMENT) # change here for dif movement
+    return JoypadSpace(env, actions)
 
-def run(training_mode, pretrained):
+def generate_epoch_time_id():
+    epoch_time = int(time.time())
+    return str(epoch_time)
+
+def save_checkpoint(agent, total_rewards, run_id):
+    with open(f"ending_position-{run_id}.pkl", "wb") as f:
+        pickle.dump(agent.ending_position, f)
+    with open(f"num_in_queue-{run_id}.pkl", "wb") as f:
+        pickle.dump(agent.num_in_queue, f)
+    with open(f"total_rewards-{run_id}.pkl", "wb") as f:
+        pickle.dump(total_rewards, f)
+    if agent.double_dq:
+        torch.save(agent.local_net.state_dict(), f"dq1-{run_id}.pt")
+        torch.save(agent.target_net.state_dict(), f"dq2-{run_id}.pt")
+    else:
+        torch.save(agent.dqn.state_dict(), f"dq-{run_id}.pt")  
+    torch.save(agent.STATE_MEM,  f"STATE_MEM-{run_id}.pt")
+    torch.save(agent.ACTION_MEM, f"ACTION_MEM-{run_id}.pt")
+    torch.save(agent.REWARD_MEM, f"REWARD_MEM-{run_id}.pt")
+    torch.save(agent.STATE2_MEM, f"STATE2_MEM-{run_id}.pt")
+    torch.save(agent.DONE_MEM,   f"DONE_MEM-{run_id}.pt")
+
+def main(training_mode=True, pretrained=False, lr=0.00025, gamma=0.90, exploration_decay=0.99,
+        mario_env='SuperMarioBros-1-1-v0', actions=SIMPLE_MOVEMENT, num_episodes=10, run_id=None):
    
-    fh = open('progress.txt', 'a')
-    env = gym.make('SuperMarioBros-1-1-v0')
+    run_id = run_id or generate_epoch_time_id()
+    fh = open(f'progress-{run_id}.txt', 'a')
+    env = gym.make(mario_env)
     #env = gym_super_mario_bros.make('SuperMarioBros-v0')
     
     #env = make_env(env)  # Wraps the environment so that frames are grayscale 
     #env = SuperMarioBrosEnv()
-    env = make_env(env)
+    env = make_env(env, actions)
     observation_space = env.observation_space.shape
     action_space = env.action_space.n
 
@@ -73,17 +85,18 @@ def run(training_mode, pretrained):
                      action_space=action_space,
                      max_memory_size=30000,
                      batch_size=32,
-                     gamma=0.90,
-                     lr=0.00025,
+                     gamma=gamma,
+                     lr=lr,
                      dropout=0.,
                      exploration_max=1.0,
                      exploration_min=0.02,
-                     exploration_decay=0.99,
+                     exploration_decay=exploration_decay,
                      double_dq=True,
-                     pretrained=pretrained)
+                     pretrained=pretrained,
+                     run_id=run_id)
     
     
-    num_episodes = 10
+    # num_episodes = 10
     env.reset()
     total_rewards = []
     
@@ -112,19 +125,23 @@ def run(training_mode, pretrained):
             state = state_next
             if terminal:
                 break
-        
-        if ep_num % 500 == 0 and training_mode:
-            save_model(agent)
 
         total_rewards.append(total_reward)
-        with open('total_reward.txt', 'a') as f:
+
+        if training_mode and (ep_num % 300) == 0:
+            save_checkpoint(agent, total_rewards, run_id)
+
+        with open(f'total_reward-{run_id}.txt', 'a') as f:
             f.write("Total reward after episode {} is {}\n".format(ep_num + 1, total_rewards[-1]))
             if (ep_num%100 == 0):
                 f.write("==================\n")
                 f.write("{} current time at episode {}\n".format(datetime.datetime.now(), ep_num+1))
                 f.write("==================\n")
             #print("Total reward after episode {} is {}".format(ep_num + 1, total_rewards[-1]))
-            num_episodes += 1 
+            num_episodes += 1
+    
+    if training_mode:
+        save_checkpoint(agent, total_rewards, run_id)
     
     env.close()
     fh.close()
@@ -135,4 +152,34 @@ def run(training_mode, pretrained):
     #              np.convolve(total_rewards, np.ones((500,))/500, mode="valid").tolist())
     #     plt.show()
 
-run(training_mode=True, pretrained=False)
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Runs MaRLios agent on Super Mario bros. gym environment")
+
+    parser.add_argument("--training-mode", type=ast.literal_eval, default=True, help="Training mode (default: True)")
+    parser.add_argument("--pretrained", type=ast.literal_eval, default=False, help="Use pretrained model (default: False)")
+    parser.add_argument("--lr", type=float, default=0.00025, help="Learning rate (default: 0.00025)")
+    parser.add_argument("--gamma", type=float, default=0.90, help="Discount factor (default: 0.90)")
+    parser.add_argument("--exploration-decay", type=float, default=0.99, help="Exploration decay (default: 0.99)")
+    parser.add_argument("--mario-env", type=str, default='SuperMarioBros-1-1-v0', help="Mario environment (default: 'SuperMarioBros-1-1-v0')")
+    parser.add_argument("--actions", type=str, default='SIMPLE_MOVEMENT', help="Actions (default: 'SIMPLE_MOVEMENT')")
+    parser.add_argument("--num-episodes", type=int, default=10, help="Number of episodes (default: 10)")
+    parser.add_argument("--run-id", type=str, default=None, help="Run ID (default: epoch timestring)")
+
+    args = parser.parse_args()
+    print('test: ', args)
+
+    if args.actions in action_mapping:
+        actions = action_mapping[args.actions]
+    else:
+        raise ValueError("Invalid actions argument.")
+
+    main(training_mode=args.training_mode,
+         pretrained=args.pretrained,
+         lr=args.lr,
+         gamma=args.gamma,
+         exploration_decay=args.exploration_decay,
+         mario_env=args.mario_env,
+         actions=actions,
+         num_episodes=args.num_episodes,
+         run_id=args.run_id)

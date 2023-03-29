@@ -48,7 +48,7 @@ class DQNSolver(nn.Module):
 class DQNAgent:
 
     def __init__(self, state_space, action_space, max_memory_size, batch_size, gamma, lr,
-                 dropout, exploration_max, exploration_min, exploration_decay, double_dq, pretrained):
+                 dropout, exploration_max, exploration_min, exploration_decay, double_dq, pretrained, run_id=''):
 
         # Define DQN Layers
         self.state_space = state_space
@@ -61,8 +61,8 @@ class DQNAgent:
             self.target_net = DQNSolver(state_space, action_space).to(self.device)
             
             if self.pretrained:
-                self.local_net.load_state_dict(torch.load("dq1.pt", map_location=torch.device(self.device)))
-                self.target_net.load_state_dict(torch.load("dq2.pt", map_location=torch.device(self.device)))
+                self.local_net.load_state_dict(torch.load(f"dq1-{run_id}.pt", map_location=torch.device(self.device)))
+                self.target_net.load_state_dict(torch.load(f"dq2-{run_id}.pt", map_location=torch.device(self.device)))
                     
             self.optimizer = torch.optim.Adam(self.local_net.parameters(), lr=lr)
             self.copy = 5000  # Copy the local model weights into the target network every 5000 steps
@@ -71,20 +71,20 @@ class DQNAgent:
             self.dqn = DQNSolver(state_space, action_space).to(self.device)
             
             if self.pretrained:
-                self.dqn.load_state_dict(torch.load("dq.pt", map_location=torch.device(self.device)))
+                self.dqn.load_state_dict(torch.load(f"dq-{run_id}.pt", map_location=torch.device(self.device)))
             self.optimizer = torch.optim.Adam(self.dqn.parameters(), lr=lr)
 
         # Create memory
         self.max_memory_size = max_memory_size
         if self.pretrained:
-            self.STATE_MEM = torch.load("STATE_MEM.pt")
-            self.ACTION_MEM = torch.load("ACTION_MEM.pt")
-            self.REWARD_MEM = torch.load("REWARD_MEM.pt")
-            self.STATE2_MEM = torch.load("STATE2_MEM.pt")
-            self.DONE_MEM = torch.load("DONE_MEM.pt")
-            with open("ending_position.pkl", 'rb') as f:
+            self.STATE_MEM = torch.load(f"STATE_MEM-{run_id}.pt")
+            self.ACTION_MEM = torch.load(f"ACTION_MEM-{run_id}.pt")
+            self.REWARD_MEM = torch.load(f"REWARD_MEM-{run_id}.pt")
+            self.STATE2_MEM = torch.load(f"STATE2_MEM-{run_id}.pt")
+            self.DONE_MEM = torch.load(f"DONE_MEM-{run_id}.pt")
+            with open(f"ending_position-{run_id}.pkl", 'rb') as f:
                 self.ending_position = pickle.load(f)
-            with open("num_in_queue.pkl", 'rb') as f:
+            with open(f"num_in_queue-{run_id}.pkl", 'rb') as f:
                 self.num_in_queue = pickle.load(f)
         else:
             self.STATE_MEM = torch.zeros(max_memory_size, *self.state_space)
