@@ -18,7 +18,8 @@ import ast
 
 action_mapping = {
     'SIMPLE_MOVEMENT': SIMPLE_MOVEMENT,
-    'LEFT_ONLY': RIGHT_ONLY
+    'RIGHT_ONLY': RIGHT_ONLY,
+    'COMPLEX_MOVEMENT': COMPLEX_MOVEMENT
 }
 
 def vectorize_action(action, action_space):
