@@ -14,4 +14,4 @@ eval "$(conda shell.bash hook)"
 
 conda activate marlios-env
 
-python learn_mario.py ----actions='COMPLEX_MOVEMENT' --run_id='default_complex_movement_10000ep_cpu' --num-episodes=10000
+python learn_mario.py --actions='COMPLEX_MOVEMENT' --run-id='default_complex_movement_10000ep_cpu' --num-episodes=10000
