@@ -30,9 +30,9 @@ class DQNSolver(nn.Module):
         )
 
         conv_out_size = self._get_conv_out(input_shape)
-        action_size = 12
-        # 6 unique button presses available in joypadspace = 8 - minus start and select
-        # We then take a vector of 6 being the initial action, and 6 being the second action
+        action_size = 10
+        # 6 unique button presses available in joypadspace = 8 - minus start and select and up
+        # We then take a vector of 5 being the initial action, and 6 being the second action
         self.fc = nn.Sequential(
             nn.Linear(conv_out_size + action_size, 512),
             nn.ReLU(),
