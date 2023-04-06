@@ -1,27 +1,25 @@
 import numpy as np
-import itertools
 from constants import BUTTONS, ACTION_SPACE, BUTTON_MAP
 
 
-def sample_actions(action_set, n_actions, hold_out_actions):
+'''
+PRE: action set has been filtered to not include the holdout actions
+Returns: an array of action vector representations to feed into our fc network
+'''
+def sample_actions(action_set, n_actions):
     '''
     action_set - the actions available to the agent
     n_actions - batch size
     '''
-    sampled_actions = np.zeros((n_actions, 10))
-    sampled_idx = np.random.randint(0, len(action_set), size=n_actions)
-    
-    # sampled_idx_2 = np.random.randint(0, len(action_set), size=n_actions)
+    action_vectors = np.zeros((n_actions, 10))
+    sampled_idx = np.random.randint(0, len(action_set), size=n_actions).tolist()
+    cur_actions = action_set[sampled_idx]
 
-            
+    for i, actions in enumerate(cur_actions):
+        vec = action_to_vec(actions)
+        action_vectors[i] = vec
 
-
-class ActionSet:
-
-    def __init__(self, n_actions, hold_out_actions):
-        
-        self.cur_action_set = np.zeros(shape=[n_actions, 10])
-
+    return action_vectors
 
 
 def vec_to_action(vec):
