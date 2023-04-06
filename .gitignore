@@ -1,5 +1,4 @@
 lib/*
-*.pt
-*.pkl
+*MEM.pt
 *.txt
 *.pyc
