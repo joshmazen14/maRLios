@@ -15,10 +15,11 @@ import numpy as np
 import collections 
 import cv2
 import matplotlib.pyplot as plt
+import action_utils 
 
 class DQNSolver(nn.Module):
 
-    def __init__(self, input_shape, n_actions):
+    def __init__(self, input_shape):
         super(DQNSolver, self).__init__()
         self.conv = nn.Sequential(
             nn.Conv2d(input_shape[0], 32, kernel_size=8, stride=4),
@@ -66,31 +67,32 @@ class DQNSolver(nn.Module):
 class DQNAgent:
 
     def __init__(self, state_space, action_space, max_memory_size, batch_size, gamma, lr,
-                 dropout, exploration_max, exploration_min, exploration_decay, double_dq, pretrained, run_id=''):
+                 dropout, exploration_max, exploration_min, exploration_decay, double_dq, pretrained, run_id='', n_actions = 32):
 
         # Define DQN Layers
         self.state_space = state_space
-        self.action_space = action_space
+
+        self.action_space = action_space # this will be a set of actions ie: a subset of TWO_ACTIONS in constants.py
+        self.n_actions = n_actions # initial number of actions to sample
+        self.cur_action_space = self.subsample_actions(self.n_actions)
+
         self.double_dq = double_dq
         self.pretrained = pretrained
-        self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
-        if self.double_dq:  
-            self.local_net = DQNSolver(state_space, action_space).to(self.device)
-            self.target_net = DQNSolver(state_space, action_space).to(self.device)
-            
-            if self.pretrained:
-                self.local_net.load_state_dict(torch.load(f"dq1-{run_id}.pt", map_location=torch.device(self.device)))
-                self.target_net.load_state_dict(torch.load(f"dq2-{run_id}.pt", map_location=torch.device(self.device)))
-                    
-            self.optimizer = torch.optim.Adam(self.local_net.parameters(), lr=lr)
-            self.copy = 5000  # Copy the local model weights into the target network every 5000 steps
-            self.step = 0
-        else:  
-            self.dqn = DQNSolver(state_space, action_space).to(self.device)
-            
-            if self.pretrained:
-                self.dqn.load_state_dict(torch.load(f"dq-{run_id}.pt", map_location=torch.device(self.device)))
-            self.optimizer = torch.optim.Adam(self.dqn.parameters(), lr=lr)
+        self.device = 'cuda' if torch.cuda.is_available() else 'cpu' # should add in mps if available as well
+
+        # this has been altered as we no longer need to pass the number of actions
+        self.local_net = DQNSolver(state_space).to(self.device)
+        self.target_net = DQNSolver(state_space).to(self.device)
+        
+        if self.pretrained:
+            self.local_net.load_state_dict(torch.load(f"dq1-{run_id}.pt", map_location=torch.device(self.device)))
+            self.target_net.load_state_dict(torch.load(f"dq2-{run_id}.pt", map_location=torch.device(self.device)))
+                
+        self.optimizer = torch.optim.Adam(self.local_net.parameters(), lr=lr)
+        self.copy = 5000  # Copy the local model weights into the target network every 5000 steps
+        self.step = 0
+    
+    
 
         # Create memory
         self.max_memory_size = max_memory_size
@@ -106,7 +108,7 @@ class DQNAgent:
                 self.num_in_queue = pickle.load(f)
         else:
             self.STATE_MEM = torch.zeros(max_memory_size, *self.state_space)
-            self.ACTION_MEM = torch.zeros(max_memory_size, 1)
+            self.ACTION_MEM = torch.zeros(max_memory_size, 10) # this needs to be a matrix of the actual action taken
             self.REWARD_MEM = torch.zeros(max_memory_size, 1)
             self.STATE2_MEM = torch.zeros(max_memory_size, *self.state_space)
             self.DONE_MEM = torch.zeros(max_memory_size, 1)
@@ -122,6 +124,11 @@ class DQNAgent:
         self.exploration_rate = exploration_max
         self.exploration_min = exploration_min
         self.exploration_decay = exploration_decay
+        
+
+    def subsample_actions(n_actions):
+        return action_utils.sample_actions(self.action_space, n_actions)
+
 
     def remember(self, state, action, reward, state2, done):
         self.STATE_MEM[self.ending_position] = state.float()
@@ -145,15 +152,30 @@ class DQNAgent:
         return STATE, ACTION, REWARD, STATE2, DONE
 
     def act(self, state):
+        '''
+        Returns the action selected by the agent
+        '''
         # Epsilon-greedy action
         
+        # increment step
         if self.double_dq:
             self.step += 1
+
         if random.random() < self.exploration_rate:  
-            return torch.tensor([[random.randrange(self.action_space)]])
+            rand_ind = random.randrange(0, self.cur_action_space.shape[0])
+
+            return torch.tensor(self.cur_action_space[rand_ind])
         
         if self.double_dq:
             # Local net is used for the policy
+
+            # Updated for generalization:
+            results = self.local_net(state.to(self.device)).unsqueeze(0).unsqueeze(0).cpu()
+            act_index = torch.argmax(results)
+            action = torch.tensor(self.cur_action_space)
+            # pickup from here
+
+            
             return torch.argmax(self.local_net(state.to(self.device))).unsqueeze(0).unsqueeze(0).cpu()
         
         else: # only training the double dq model
