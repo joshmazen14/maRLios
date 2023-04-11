@@ -71,7 +71,7 @@ class DQNAgent:
         # Define DQN Layers
         self.state_space = state_space
 
-        self.action_space = np.asarray(action_space) # this will be a set of actions ie: a subset of TWO_ACTIONS in constants.py
+        self.action_space = action_space # this will be a set of actions ie: a subset of TWO_ACTIONS in constants.py
         self.n_actions = n_actions # initial number of actions to sample
         self.cur_action_space = self.subsample_actions(self.n_actions)
 
@@ -170,7 +170,7 @@ class DQNAgent:
         if random.random() < self.exploration_rate:  
             rand_ind = random.randrange(0, self.cur_action_space.shape[0])
 
-            return torch.tensor(self.cur_action_space[rand_ind])
+            return torch.tensor(rand_ind)
         
             # Local net is used for the policy
 

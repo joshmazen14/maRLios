@@ -17,7 +17,7 @@ def sample_actions(action_set, n_actions):
     '''
     action_vectors = np.zeros((n_actions, 10))
     sampled_idx = np.random.randint(0, len(action_set), size=n_actions - 1).tolist()
-    cur_actions = action_set[sampled_idx]
+    cur_actions = [action_set[i] for i in sampled_idx]
 
 
     for i, actions in enumerate(cur_actions):
