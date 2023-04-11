@@ -50,8 +50,8 @@ def vec_to_action(vec):
 
 def action_to_vec(actions):
     act1, act2 = actions
-    vec1 = np.zeros(shape=[1, 5])
-    vec2 = np.zeros(shape=[1, 5])
+    vec1 = [0 for i in range(5)]
+    vec2 = [0 for i in range(5)]
 
     for i, j in zip(act1, act2):
         ind1 = BUTTON_MAP[i]
