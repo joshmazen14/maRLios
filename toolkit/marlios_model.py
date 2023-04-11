@@ -10,12 +10,11 @@ from gym_super_mario_bros import SuperMarioBrosEnv
 from tqdm import tqdm
 import numpy as np
 import pickle 
-from gym_super_mario_bros.actions import RIGHT_ONLY
 import numpy as np
 import collections 
 import cv2
 import matplotlib.pyplot as plt
-import action_utils 
+import toolkit.action_utils 
 
 class DQNSolver(nn.Module):
 
@@ -72,7 +71,7 @@ class DQNAgent:
         # Define DQN Layers
         self.state_space = state_space
 
-        self.action_space = action_space # this will be a set of actions ie: a subset of TWO_ACTIONS in constants.py
+        self.action_space = np.asarray(action_space) # this will be a set of actions ie: a subset of TWO_ACTIONS in constants.py
         self.n_actions = n_actions # initial number of actions to sample
         self.cur_action_space = self.subsample_actions(self.n_actions)
 
@@ -132,7 +131,7 @@ class DQNAgent:
         '''
         Returns numpy array 
         '''
-        return action_utils.sample_actions(self.action_space, n_actions)
+        return toolkit.action_utils.sample_actions(self.action_space, n_actions)
 
 
     def remember(self, state, action, reward, state2, done):

@@ -1,5 +1,5 @@
 import numpy as np
-from constants import BUTTONS, ACTION_SPACE, BUTTON_MAP, SUFFICIENT_ACTIONS
+from toolkit.constants import BUTTONS, ACTION_SPACE, BUTTON_MAP, SUFFICIENT_ACTIONS
 
 
 '''
@@ -58,16 +58,20 @@ def vec_to_action(vec):
 
 def action_to_vec(actions):
     act1, act2 = actions
-    vec1 = np.zeros(shape=[1, 5])
-    vec2 = np.zeros(shape=[1, 5])
+    vec1 = np.zeros(shape=[5])
+    vec2 = np.zeros(shape=[5])
 
-    for i, j in zip(act1, act2):
-        ind1 = BUTTON_MAP[i]
-        ind2 = BUTTON_MAP[i]
-        vec1[ind1] = 1
-        vec2[ind2] = 1
+    for i in act1:
+        if i != 'NOOP':
+            ind1 = BUTTON_MAP[i]
+            vec1[ind1] = 1
+
+    for i in act2:
+        if i != 'NOOP':
+            ind2 = BUTTON_MAP[i]
+            vec2[ind2] = 1
     
-    return np.concatenate(vec1, vec2)
+    return np.concatenate([vec1, vec2], axis=None)
 
 
 
