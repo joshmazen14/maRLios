@@ -1,5 +1,5 @@
 import numpy as np
-from constants import BUTTONS, ACTION_SPACE, BUTTON_MAP
+from constants import BUTTONS, ACTION_SPACE, BUTTON_MAP, SUFFICIENT_ACTIONS
 
 
 '''
@@ -10,14 +10,22 @@ def sample_actions(action_set, n_actions):
     '''
     action_set - the actions available to the agent
     n_actions - batch size
+
+    We will in actuality sample n_actions - 1 from the general action space, and sample the remaining action from the sufficient action space. This
+    May introduce a single duplicate value with some small probability, but we think that will not pose much of an issue. This is done to ensure
+    that the sampled actions always contain an action that can be used to complete the level. 
     '''
     action_vectors = np.zeros((n_actions, 10))
-    sampled_idx = np.random.randint(0, len(action_set), size=n_actions).tolist()
+    sampled_idx = np.random.randint(0, len(action_set), size=n_actions - 1).tolist()
     cur_actions = action_set[sampled_idx]
+
 
     for i, actions in enumerate(cur_actions):
         vec = action_to_vec(actions)
         action_vectors[i] = vec
+
+    suff_action_idx = np.random.randint(0, len(SUFFICIENT_ACTIONS))
+    action_vectors[n_actions - 1] = action_to_vec(SUFFICIENT_ACTIONS[suff_action_idx])
 
     return action_vectors
 
@@ -60,4 +68,48 @@ def action_to_vec(actions):
         vec2[ind2] = 1
     
     return np.concatenate(vec1, vec2)
-        
+
+
+
+# We probably won't use this, because we made a design choice in sample_actions
+def suffient_action_space(action_space):
+    '''
+    This function will analyze the actions in the action space proposed, and will determine if it 
+    is sufficient to finish the game
+
+    Returns Boolean. 
+    '''
+    right_present = False
+    a_present = False
+    
+    for two_actions in action_space:
+        if right_present and a_present:
+            break
+
+        act1, act2 = two_actions
+
+        if ("right" in act1 and "left" not in act2) or ("right" in act2 and "left" not in act1):
+            right_present = True
+
+        if "A" in act1 or "A" in act2:
+            a_present = True
+
+    return right_present and a_present
+
+
+
+# this is never used outside of my jupyter notebook
+def is_sufficient_action(two_actions):
+
+    right_present = False
+    a_present = False
+
+    act1, act2 = two_actions
+
+    if ("right" in act1 and "left" not in act2) or ("right" in act2 and "left" not in act1):
+        right_present = True
+
+    if "A" in act1 or "A" in act2:
+        a_present = True
+
+    return right_present and a_present

@@ -61,7 +61,7 @@ class DQNSolver(nn.Module):
         batched_actions = torch.cat((conv_out.unsqueeze(1).expand(-1, len(sampled_actions), -1), actions_tensor.unsqueeze(0)), dim=2)
         batched_actions = batched_actions.reshape(len(sampled_actions), -1)
 
-        return self.fc(batched_actions)
+        return torch.flatten(self.fc(batched_actions))
     
 
 class DQNAgent:
@@ -102,16 +102,18 @@ class DQNAgent:
             self.REWARD_MEM = torch.load(f"REWARD_MEM-{run_id}.pt")
             self.STATE2_MEM = torch.load(f"STATE2_MEM-{run_id}.pt")
             self.DONE_MEM = torch.load(f"DONE_MEM-{run_id}.pt")
+            self.SPACE_MEM = torch.load(f"SPACE_MEM-{run_id}.pt")
             with open(f"ending_position-{run_id}.pkl", 'rb') as f:
                 self.ending_position = pickle.load(f)
             with open(f"num_in_queue-{run_id}.pkl", 'rb') as f:
                 self.num_in_queue = pickle.load(f)
         else:
             self.STATE_MEM = torch.zeros(max_memory_size, *self.state_space)
-            self.ACTION_MEM = torch.zeros(max_memory_size, 10) # this needs to be a matrix of the actual action taken
+            self.ACTION_MEM = torch.zeros(max_memory_size, 1) # this needs to be a matrix of the actual action taken
             self.REWARD_MEM = torch.zeros(max_memory_size, 1)
             self.STATE2_MEM = torch.zeros(max_memory_size, *self.state_space)
             self.DONE_MEM = torch.zeros(max_memory_size, 1)
+            self.SPACE_MEM = torch.zeros(max_memory_size, self.n_actions, 10)
             self.ending_position = 0
             self.num_in_queue = 0
         
@@ -126,7 +128,10 @@ class DQNAgent:
         self.exploration_decay = exploration_decay
         
 
-    def subsample_actions(n_actions):
+    def subsample_actions(self, n_actions):
+        '''
+        Returns numpy array 
+        '''
         return action_utils.sample_actions(self.action_space, n_actions)
 
 
@@ -136,6 +141,7 @@ class DQNAgent:
         self.REWARD_MEM[self.ending_position] = reward.float()
         self.STATE2_MEM[self.ending_position] = state2.float()
         self.DONE_MEM[self.ending_position] = done.float()
+        self.SPACE_MEM[self.ending_position] = self.cur_action_space
         self.ending_position = (self.ending_position + 1) % self.max_memory_size  # FIFO tensor
         self.num_in_queue = min(self.num_in_queue + 1, self.max_memory_size)
         
@@ -148,12 +154,13 @@ class DQNAgent:
         REWARD = self.REWARD_MEM[idx]
         STATE2 = self.STATE2_MEM[idx]
         DONE = self.DONE_MEM[idx]
+        SPACE = self.SPACE_MEM[idx]
         
-        return STATE, ACTION, REWARD, STATE2, DONE
+        return STATE, ACTION, REWARD, STATE2, DONE, SPACE
 
     def act(self, state):
         '''
-        Returns the action selected by the agent
+        Returns the action vector
         '''
         # Epsilon-greedy action
         
@@ -166,20 +173,12 @@ class DQNAgent:
 
             return torch.tensor(self.cur_action_space[rand_ind])
         
-        if self.double_dq:
             # Local net is used for the policy
 
             # Updated for generalization:
-            results = self.local_net(state.to(self.device)).unsqueeze(0).unsqueeze(0).cpu()
-            act_index = torch.argmax(results)
-            action = torch.tensor(self.cur_action_space)
-            # pickup from here
-
-            
-            return torch.argmax(self.local_net(state.to(self.device))).unsqueeze(0).unsqueeze(0).cpu()
-        
-        else: # only training the double dq model
-            # return torch.argmax(self.dqn(state.to(self.device))).unsqueeze(0).unsqueeze(0).cpu()
+        results = self.local_net(state.to(self.device), self.cur_action_space).cpu()
+        return torch.argmax(results)
+        # action = torch.tensor(self.cur_action_space[act_index])
 
     def copy_model(self):
         # Copy local net weights into target net
@@ -188,13 +187,13 @@ class DQNAgent:
     
     def experience_replay(self):
         
-        if self.double_dq and self.step % self.copy == 0:
+        if self.step % self.copy == 0:
             self.copy_model()
 
         if self.memory_sample_size > self.num_in_queue:
             return
 
-        STATE, ACTION, REWARD, STATE2, DONE = self.recall()
+        STATE, ACTION, REWARD, STATE2, DONE, SPACE = self.recall()
         STATE = STATE.to(self.device)
         ACTION = ACTION.to(self.device)
         REWARD = REWARD.to(self.device)
@@ -202,21 +201,15 @@ class DQNAgent:
         DONE = DONE.to(self.device)
         
         self.optimizer.zero_grad()
-        if self.double_dq:
-            # Double Q-Learning target is Q*(S, A) <- r + γ max_a Q_target(S', a)
-            target = REWARD + torch.mul((self.gamma * 
-                                        self.target_net(STATE2).max(1).values.unsqueeze(1)), 
-                                        1 - DONE)
+        # Double Q-Learning target is Q*(S, A) <- r + γ max_a Q_target(S', a)
+    
+        target = REWARD + torch.mul((self.gamma * 
+                                    self.target_net(STATE2, SPACE).max(1).values.unsqueeze(1)), 
+                                    1 - DONE)
 
-            current = self.local_net(STATE).gather(1, ACTION.long()) # Local net approximation of Q-value
-        else:
-            # Q-Learning target is Q*(S, A) <- r + γ max_a Q(S', a) 
-            target = REWARD + torch.mul((self.gamma * 
-                                        self.dqn(STATE2).max(1).values.unsqueeze(1)), 
-                                        1 - DONE)
-                
-            current = self.dqn(STATE).gather(1, ACTION.long())
-        
+        current = self.local_net(STATE, SPACE).gather(1, ACTION.long()) # Local net approximation of Q-value
+    
+    
         loss = self.l1(current, target)
         loss.backward() # Compute gradients
         self.optimizer.step() # Backpropagate error
