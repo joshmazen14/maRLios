@@ -54,7 +54,7 @@ class DQNSolver(nn.Module):
 
         # append our actions to conv out and create a pseudo batch for each action
         # Convert the array of actions to a PyTorch tensor
-        actions_tensor = torch.from_numpy(sampled_actions)
+        actions_tensor = torch.from_numpy(sampled_actions).to(torch.float32)
 
         # Concatenate the PyTorch tensor with the actions tensor along the second dimension
         batched_actions = torch.cat((conv_out.unsqueeze(1).expand(-1, len(sampled_actions), -1), actions_tensor.unsqueeze(0)), dim=2)
@@ -96,25 +96,32 @@ class DQNAgent:
         # Create memory
         self.max_memory_size = max_memory_size
         if self.pretrained:
-            self.STATE_MEM = torch.load(f"STATE_MEM-{run_id}.pt")
-            self.ACTION_MEM = torch.load(f"ACTION_MEM-{run_id}.pt")
-            self.REWARD_MEM = torch.load(f"REWARD_MEM-{run_id}.pt")
-            self.STATE2_MEM = torch.load(f"STATE2_MEM-{run_id}.pt")
-            self.DONE_MEM = torch.load(f"DONE_MEM-{run_id}.pt")
-            self.SPACE_MEM = torch.load(f"SPACE_MEM-{run_id}.pt")
+            # self.STATE_MEM = torch.load(f"STATE_MEM-{run_id}.pt")
+            # self.ACTION_MEM = torch.load(f"ACTION_MEM-{run_id}.pt")
+            # self.REWARD_MEM = torch.load(f"REWARD_MEM-{run_id}.pt")
+            # self.STATE2_MEM = torch.load(f"STATE2_MEM-{run_id}.pt")
+            # self.DONE_MEM = torch.load(f"DONE_MEM-{run_id}.pt")
+            # self.SPACE_MEM = torch.load(f"SPACE_MEM-{run_id}.pt")
             with open(f"ending_position-{run_id}.pkl", 'rb') as f:
                 self.ending_position = pickle.load(f)
             with open(f"num_in_queue-{run_id}.pkl", 'rb') as f:
                 self.num_in_queue = pickle.load(f)
         else:
-            self.STATE_MEM = torch.zeros(max_memory_size, *self.state_space)
-            self.ACTION_MEM = torch.zeros(max_memory_size, 1) # this needs to be a matrix of the actual action taken
-            self.REWARD_MEM = torch.zeros(max_memory_size, 1)
-            self.STATE2_MEM = torch.zeros(max_memory_size, *self.state_space)
-            self.DONE_MEM = torch.zeros(max_memory_size, 1)
-            self.SPACE_MEM = torch.zeros(max_memory_size, self.n_actions, 10)
+            # self.STATE_MEM = torch.zeros(max_memory_size, *self.state_space)
+            # self.ACTION_MEM = torch.zeros(max_memory_size, 1) # this needs to be a matrix of the actual action taken
+            # self.REWARD_MEM = torch.zeros(max_memory_size, 1)
+            # self.STATE2_MEM = torch.zeros(max_memory_size, *self.state_space)
+            # self.DONE_MEM = torch.zeros(max_memory_size, 1)
+            # self.SPACE_MEM = torch.zeros(max_memory_size, self.n_actions, 10)
             self.ending_position = 0
             self.num_in_queue = 0
+
+        self.STATE_MEM = torch.zeros(max_memory_size, *self.state_space)
+        self.ACTION_MEM = torch.zeros(max_memory_size, 1) # this needs to be a matrix of the actual action taken
+        self.REWARD_MEM = torch.zeros(max_memory_size, 1)
+        self.STATE2_MEM = torch.zeros(max_memory_size, *self.state_space)
+        self.DONE_MEM = torch.zeros(max_memory_size, 1)
+        self.SPACE_MEM = torch.zeros(max_memory_size, self.n_actions, 10)
         
         self.memory_sample_size = batch_size
         
