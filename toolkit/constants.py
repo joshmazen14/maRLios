@@ -25,6 +25,35 @@ ACTION_SPACE = [
     ['right']
 ]
 
+ACTION_TO_INDEX = {
+    ('A',): 0, 
+    ('A', 'B'): 1, 
+    ('A', 'B', 'down'): 2, 
+    ('A', 'B', 'down', 'left'): 3, 
+    ('A', 'B', 'down', 'right'): 4, 
+    ('A', 'B', 'left'): 5, 
+    ('A', 'B', 'right'): 6, 
+    ('A', 'down'): 7, 
+    ('A', 'down', 'left'): 8, 
+    ('A', 'down', 'right'): 9, 
+    ('A', 'left'): 10, 
+    ('A', 'right'): 11, 
+    ('B',): 12, 
+    ('B', 'down'): 13, 
+    ('B', 'down', 'left'): 14, 
+    ('B', 'down', 'right'): 15, 
+    ('B', 'left'): 16, 
+    ('B', 'right'): 17, 
+    ('NOOP',): 18, 
+    ('down',): 19, 
+    ('down', 'left'): 20, 
+    ('down', 'right'): 21, 
+    ('left',): 22, 
+    ('right',): 23
+}
+
+
+
 BUTTONS = ['A',
             'B', 
             'down', 

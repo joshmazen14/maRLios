@@ -1,4 +1,5 @@
 import numpy as np
+import random
 from toolkit.constants import BUTTONS, ACTION_SPACE, BUTTON_MAP, SUFFICIENT_ACTIONS
 
 
@@ -16,7 +17,7 @@ def sample_actions(action_set, n_actions):
     that the sampled actions always contain an action that can be used to complete the level. 
     '''
     action_vectors = np.zeros((n_actions, 10))
-    sampled_idx = np.random.randint(0, len(action_set), size=n_actions - 1).tolist()
+    sampled_idx = random.sample(range(len(action_set)), n_actions-1)
     cur_actions = [action_set[i] for i in sampled_idx]
 
 
@@ -54,7 +55,7 @@ def vec_to_action(vec):
     if not act2:
         act2 = ['NOOP']
 
-    return act1, act2
+    return tuple(act1), tuple(act2)
 
 def action_to_vec(actions):
     act1, act2 = actions

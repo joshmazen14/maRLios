@@ -3,6 +3,7 @@ from __future__ import division
 from __future__ import print_function
 
 import torch
+import torchvision
 import torch.nn as nn
 import random
 from nes_py.wrappers import JoypadSpace
@@ -31,8 +32,7 @@ class DQNSolver(nn.Module):
 
         conv_out_size = self._get_conv_out(input_shape)
         action_size = 10
-        # 6 unique button presses available in joypadspace = 8 - minus start and select and up
-        # We then take a vector of 5 being the initial action, and 6 being the second action
+        # We then take a vector of 5 being the initial action, and 5 being the second action
         self.fc = nn.Sequential(
             nn.Linear(conv_out_size + action_size, 512),
             nn.ReLU(),
@@ -51,16 +51,16 @@ class DQNSolver(nn.Module):
         sampled_actions - np.array with n x 8 
         '''
         conv_out = self.conv(x).view(x.size()[0], -1)
+    
+        batched_conv_out = conv_out.reshape(conv_out.shape[0], 1, conv_out.shape[-1]).repeat(1, sampled_actions.shape[-2], 1)
+       
+        if sampled_actions.dim() == 2:
+            sampled_actions = sampled_actions.unsqueeze(0)
+            
+        batched_actions = torch.cat((batched_conv_out, sampled_actions), dim=2)
+        out =  torch.flatten(self.fc(batched_actions), start_dim=1)
 
-        # append our actions to conv out and create a pseudo batch for each action
-        # Convert the array of actions to a PyTorch tensor
-        actions_tensor = torch.from_numpy(sampled_actions).to(torch.float32)
-
-        # Concatenate the PyTorch tensor with the actions tensor along the second dimension
-        batched_actions = torch.cat((conv_out.unsqueeze(1).expand(-1, len(sampled_actions), -1), actions_tensor.unsqueeze(0)), dim=2)
-        batched_actions = batched_actions.reshape(len(sampled_actions), -1)
-
-        return torch.flatten(self.fc(batched_actions))
+        return out
     
 
 class DQNAgent:
@@ -73,11 +73,13 @@ class DQNAgent:
 
         self.action_space = action_space # this will be a set of actions ie: a subset of TWO_ACTIONS in constants.py
         self.n_actions = n_actions # initial number of actions to sample
-        self.cur_action_space = self.subsample_actions(self.n_actions)
+
+        self.device = 'mps' if torch.backends.mps.is_available() else 'cpu' # should add in mps if available as well
+        self.cur_action_space = torch.from_numpy(self.subsample_actions(self.n_actions)).to(torch.float32).to(self.device)
 
         self.double_dq = double_dq
         self.pretrained = pretrained
-        self.device = 'cuda' if torch.cuda.is_available() else 'cpu' # should add in mps if available as well
+        
 
         # this has been altered as we no longer need to pass the number of actions
         self.local_net = DQNSolver(state_space).to(self.device)
@@ -204,6 +206,7 @@ class DQNAgent:
         ACTION = ACTION.to(self.device)
         REWARD = REWARD.to(self.device)
         STATE2 = STATE2.to(self.device)
+        SPACE = SPACE.to(self.device)
         DONE = DONE.to(self.device)
         
         self.optimizer.zero_grad()
