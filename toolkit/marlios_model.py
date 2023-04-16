@@ -3,7 +3,7 @@ from __future__ import division
 from __future__ import print_function
 
 import torch
-import torchvision
+# import torchvision
 import torch.nn as nn
 import random
 from nes_py.wrappers import JoypadSpace
@@ -130,6 +130,7 @@ class DQNAgent:
         # Learning parameters
         self.gamma = gamma
         self.l1 = nn.SmoothL1Loss().to(self.device) # Also known as Huber loss
+        self.l2 = nn.MSELoss().to(self.device)
         self.exploration_max = exploration_max
         self.exploration_rate = exploration_max
         self.exploration_min = exploration_min
@@ -222,6 +223,7 @@ class DQNAgent:
         loss = self.l1(current, target) # maybe we can play with some L2 loss 
         loss.backward() # Compute gradients
         self.optimizer.step() # Backpropagate error
+        self.cur_action_space = torch.from_numpy(self.subsample_actions(self.n_actions)).to(torch.float32).to(self.device)
 
         self.exploration_rate *= self.exploration_decay
         
