@@ -17,7 +17,7 @@ def sample_actions(action_set, n_actions):
     that the sampled actions always contain an action that can be used to complete the level. 
     '''
     action_vectors = np.zeros((n_actions, 10))
-    sampled_idx = random.sample(range(len(action_set)), n_actions-1)
+    sampled_idx = random.sample(range(len(action_set)), n_actions-2)
     cur_actions = [action_set[i] for i in sampled_idx]
 
 
@@ -26,7 +26,10 @@ def sample_actions(action_set, n_actions):
         action_vectors[i] = vec
 
     suff_action_idx = np.random.randint(0, len(SUFFICIENT_ACTIONS))
-    action_vectors[n_actions - 1] = action_to_vec(SUFFICIENT_ACTIONS[suff_action_idx])
+    action_vectors[n_actions - 2] = action_to_vec(SUFFICIENT_ACTIONS[suff_action_idx])
+
+    # always want to have the noop action available
+    action_vectors[n_actions - 1] = np.zeros_like(action_vectors[0])
 
     return action_vectors
 

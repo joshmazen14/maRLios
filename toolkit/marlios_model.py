@@ -23,21 +23,23 @@ class DQNSolver(nn.Module):
         super(DQNSolver, self).__init__()
         self.conv = nn.Sequential(
             nn.Conv2d(input_shape[0], 32, kernel_size=8, stride=4),
-            nn.ReLU(),
+            nn.LeakyReLU(),
             nn.Conv2d(32, 64, kernel_size=4, stride=2),
-            nn.ReLU(),
+            # nn.BatchNorm2d(64),
+            nn.LeakyReLU(),
             nn.Conv2d(64, 64, kernel_size=3, stride=1),
-            nn.ReLU()
+            # nn.BatchNorm2d(64),
+            nn.LeakyReLU()
         )
 
         conv_out_size = self._get_conv_out(input_shape)
         action_size = 10
-        # We then take a vector of 5 being the initial action, and 5 being the second action
+        # We take a vector of 5 being the initial action, and 5 being the second action for action size of 10
         self.fc = nn.Sequential(
             nn.Linear(conv_out_size + action_size, 512),
-            nn.ReLU(),
+            nn.LeakyReLU(),
             nn.Linear(512, 64), # added a new layer can play with the parameters
-            nn.ReLU(),
+            nn.LeakyReLU(),
             nn.Linear(64, 1)
         )
     
@@ -51,12 +53,7 @@ class DQNSolver(nn.Module):
         sampled_actions - np.array with n x 8 
         '''
         conv_out = self.conv(x).view(x.size()[0], -1)
-    
         batched_conv_out = conv_out.reshape(conv_out.shape[0], 1, conv_out.shape[-1]).repeat(1, sampled_actions.shape[-2], 1)
-       
-        if sampled_actions.dim() == 2:
-            sampled_actions = sampled_actions.unsqueeze(0)
-            
         batched_actions = torch.cat((batched_conv_out, sampled_actions), dim=2)
         out =  torch.flatten(self.fc(batched_actions), start_dim=1)
 
@@ -65,25 +62,25 @@ class DQNSolver(nn.Module):
 
 class DQNAgent:
 
-    def __init__(self, state_space, action_space, max_memory_size, batch_size, gamma, lr,
+    def __init__(self, action_space, max_memory_size, batch_size, gamma, lr,
                  dropout, exploration_max, exploration_min, exploration_decay, double_dq, pretrained, run_id='', n_actions = 32):
 
         # Define DQN Layers
-        self.state_space = state_space
+        self.state_space = (1, 84, 84) # hardcoding this for now
 
         self.action_space = action_space # this will be a set of actions ie: a subset of TWO_ACTIONS in constants.py
         self.n_actions = n_actions # initial number of actions to sample
 
         self.device = 'mps' if torch.backends.mps.is_available() else 'cpu' # should add in mps if available as well
-        self.cur_action_space = torch.from_numpy(self.subsample_actions(self.n_actions)).to(torch.float32).to(self.device)
+        self.cur_action_space = torch.from_numpy(self.subsample_actions(self.n_actions)).to(torch.float32).to(self.device).unsqueeze(0) # make it include a batch dimension by defautl
 
         self.double_dq = double_dq
         self.pretrained = pretrained
         
 
         # this has been altered as we no longer need to pass the number of actions
-        self.local_net = DQNSolver(state_space).to(self.device)
-        self.target_net = DQNSolver(state_space).to(self.device)
+        self.local_net = DQNSolver(self.state_space).to(self.device)
+        self.target_net = DQNSolver(self.state_space).to(self.device)
         
         if self.pretrained:
             self.local_net.load_state_dict(torch.load(f"dq1-{run_id}.pt", map_location=torch.device(self.device)))
@@ -178,7 +175,7 @@ class DQNAgent:
             self.step += 1
 
         if random.random() < self.exploration_rate:  
-            rand_ind = random.randrange(0, self.cur_action_space.shape[0])
+            rand_ind = random.randrange(0, self.cur_action_space.shape[1])
 
             return torch.tensor(rand_ind)
         
@@ -186,7 +183,7 @@ class DQNAgent:
 
             # Updated for generalization:
         results = self.local_net(state.to(self.device), self.cur_action_space).cpu()
-        return torch.argmax(results)
+        return torch.argmax(results, dim=1)
         # action = torch.tensor(self.cur_action_space[act_index])
 
     def copy_model(self):
@@ -223,7 +220,9 @@ class DQNAgent:
         loss = self.l1(current, target) # maybe we can play with some L2 loss 
         loss.backward() # Compute gradients
         self.optimizer.step() # Backpropagate error
-        self.cur_action_space = torch.from_numpy(self.subsample_actions(self.n_actions)).to(torch.float32).to(self.device)
+
+        # self.cur_action_space = torch.from_numpy(self.subsample_actions(self.n_actions)).to(torch.float32).to(self.device)
+        # I am disabling this here for my testing, but also think we should add it to the run loop for testing til we are sure it works, idk
 
         self.exploration_rate *= self.exploration_decay
         

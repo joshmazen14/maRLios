@@ -790,3 +790,15 @@ SUFFICIENT_ACTIONS = [
  [['right'], ['A', 'down']],
  [['right'], ['A', 'down', 'right']],
  [['right'], ['A', 'right']]]
+
+
+
+SIMPLE_MOVEMENT = [
+    [['NOOP'], ['NOOP']],
+    [['right'], ['right']],
+    [['right', 'A'], ['right', 'A']],
+    [['right', 'B'], ['right', 'B']],
+    [['right', 'A', 'B'], ['right', 'A', 'B']],
+    [['A'], ['A']],
+    [['left'], ['left']]
+]
