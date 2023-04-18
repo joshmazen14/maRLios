@@ -25,10 +25,8 @@ class DQNSolver(nn.Module):
             nn.Conv2d(input_shape[0], 32, kernel_size=8, stride=4),
             nn.LeakyReLU(),
             nn.Conv2d(32, 64, kernel_size=4, stride=2),
-            # nn.BatchNorm2d(64),
             nn.LeakyReLU(),
             nn.Conv2d(64, 64, kernel_size=3, stride=1),
-            # nn.BatchNorm2d(64),
             nn.LeakyReLU()
         )
 
@@ -38,9 +36,9 @@ class DQNSolver(nn.Module):
         self.fc = nn.Sequential(
             nn.Linear(conv_out_size + action_size, 512),
             nn.LeakyReLU(),
-            nn.Linear(512, 64), # added a new layer can play with the parameters
-            nn.LeakyReLU(),
-            nn.Linear(64, 1)
+            nn.Linear(512, 1) # added a new layer can play with the parameters
+            # nn.LeakyReLU(),
+            # nn.Linear(64, 1)
         )
     
     def _get_conv_out(self, shape):
@@ -177,7 +175,7 @@ class DQNAgent:
         if random.random() < self.exploration_rate:  
             rand_ind = random.randrange(0, self.cur_action_space.shape[1])
 
-            return torch.tensor(rand_ind)
+            return torch.tensor(rand_ind).unsqueeze(0)
         
             # Local net is used for the policy
 
@@ -191,7 +189,7 @@ class DQNAgent:
         
         self.target_net.load_state_dict(self.local_net.state_dict())
     
-    def experience_replay(self):
+    def experience_replay(self, debug=False):
         
         if self.step % self.copy == 0:
             self.copy_model()
@@ -228,3 +226,6 @@ class DQNAgent:
         
         # Makes sure that exploration rate is always at least 'exploration min'
         self.exploration_rate = max(self.exploration_rate, self.exploration_min)
+
+        if debug:
+            return target, current, loss
