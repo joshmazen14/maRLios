@@ -174,8 +174,7 @@ class DQNAgent:
         # Epsilon-greedy action
         
         # increment step
-        if self.double_dq:
-            self.step += 1
+        self.step += 1
 
         if random.random() < self.exploration_rate:  
             rand_ind = random.randrange(0, self.cur_action_space.shape[1])
