@@ -91,6 +91,7 @@ class BufferWrapper(gym.ObservationWrapper):
         self.dtype = dtype
         old_space = env.observation_space
         
+        # Think this could be used if we wanted to still have rgb but would be harder
         # self.observation_space = gym.spaces.Box(
         #     low=np.expand_dims(old_space.low, axis=0).repeat(n_steps, axis=0),
         #     high=np.expand_dims(old_space.low, axis=0).repeat(n_steps, axis=0),
