@@ -69,7 +69,12 @@ class DQNAgent:
         self.action_space = action_space # this will be a set of actions ie: a subset of TWO_ACTIONS in constants.py
         self.n_actions = n_actions # initial number of actions to sample
 
-        self.device = 'mps' if torch.backends.mps.is_available() else 'cpu' # should add in mps if available as well
+        self.device ='cpu'
+        if torch.cuda.is_available():
+            self.device = 'cuda'
+        elif torch.backends.mps.is_available():
+            self.device = 'mps'
+        
         self.cur_action_space = torch.from_numpy(self.subsample_actions(self.n_actions)).to(torch.float32).to(self.device).unsqueeze(0) # make it include a batch dimension by defautl
 
         self.double_dq = double_dq
