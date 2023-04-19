@@ -107,6 +107,7 @@ def main(training_mode=True, pretrained=False, lr=0.0001, gamma=0.90, exploratio
     exploration_max = min(1, max(exploration_max, exploration_min))
 
     agent = DQNAgent(
+                     state_space=env.observation_space.shape,
                      action_space=action_space,
                      max_memory_size=30000,
                      batch_size=64,
@@ -134,8 +135,8 @@ def main(training_mode=True, pretrained=False, lr=0.0001, gamma=0.90, exploratio
     for iteration in tqdm(range(num_episodes)):
         ep_num = offset + iteration
 
-        state = env.reset()[-1] # take the final dimension of shape (4, 84, 84) leaving shape (84, 84) 
-        state = torch.Tensor([state]).unsqueeze(0) # converts (1, 84, 84) to (1, 1, 84, 84)
+        state = env.reset() # take the final dimension of shape 
+        state = torch.Tensor([state])# converts (1, 84, 84) to (1, 1, 84, 84)
         total_reward = 0
         steps = 0
 
@@ -169,7 +170,7 @@ def main(training_mode=True, pretrained=False, lr=0.0001, gamma=0.90, exploratio
                     total_reward += cur_reward
                     reward += cur_reward
                     
-            state_next = torch.Tensor([state_next[-1]]).unsqueeze(0)
+            state_next = torch.Tensor([state_next])
             reward = torch.tensor([reward]).unsqueeze(0)        
             terminal = torch.tensor([int(terminal)]).unsqueeze(0)
             
