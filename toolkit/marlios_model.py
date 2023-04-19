@@ -25,8 +25,11 @@ class DQNSolver(nn.Module):
             nn.Conv2d(input_shape[0], 64, kernel_size=8, stride=4),
             nn.LeakyReLU(),
             nn.Conv2d(64, 64, kernel_size=4, stride=2),
+            nn.BatchNorm2d(64),
             nn.LeakyReLU(),
             nn.Conv2d(64, 64, kernel_size=3, stride=1),
+            nn.BatchNorm2d(64),
+            #nn.MaxPool2d(),
             nn.LeakyReLU()
         )
 
