@@ -51,7 +51,7 @@ def generate_epoch_time_id():
     epoch_time = int(time.time())
     return str(epoch_time)
 
-def save_checkpoint(agent, total_rewards, terminal_info, run_id):
+def save_checkpoint(agent, total_rewards, terminal_info, total_loss, run_id):
     with open(f"ending_position-{run_id}.pkl", "wb") as f:
         pickle.dump(agent.ending_position, f)
     with open(f"num_in_queue-{run_id}.pkl", "wb") as f:
@@ -60,6 +60,8 @@ def save_checkpoint(agent, total_rewards, terminal_info, run_id):
         pickle.dump(total_rewards, f)
     with open(f"terminal_info-{run_id}.pkl", "wb") as f:
         pickle.dump(terminal_info, f)
+    with open(f"total_loss-{run_id}.pkl", "wb") as f:
+        pickle.dump(total_loss, f)
     if agent.double_dq:
         torch.save(agent.local_net.state_dict(), f"dq1-{run_id}.pt")
         torch.save(agent.target_net.state_dict(), f"dq2-{run_id}.pt")
@@ -70,6 +72,11 @@ def load_rewards(from_file):
      with open(from_file, 'rb') as f:
         total_rewards = pickle.load(f)
         return total_rewards
+     
+def load_loss(from_file):
+     with open(from_file, 'rb') as f:
+        total_loss = pickle.load(f)
+        return total_loss
 
 def plot_rewards(ep_per_stat = 100, total_rewards = [], from_file = None):
     if from_file != None:
@@ -86,6 +93,25 @@ def plot_rewards(ep_per_stat = 100, total_rewards = [], from_file = None):
     ax.set_ylabel('Reward')
     xtick_labels = [str(i*ep_per_stat) for i in range(len(avg_rewards))]
     plt.xticks(range(len(avg_rewards)), xtick_labels)
+    ax.legend(loc='lower right')
+    plt.show()
+
+def plot_loss(ep_per_stat = 100, total_loss = [], from_file = None):
+    if from_file != None:
+        total_loss = load_loss(total_loss)
+       
+    # avg_loss = [np.mean(total_loss[i:i+ep_per_stat]) for i in range(0, len(total_loss), ep_per_stat)]
+    # std_loss = [np.std(total_loss[i:i+ep_per_stat]) for i in range(0, len(total_loss), ep_per_stat)]
+
+    fig, ax = plt.subplots()
+    # ax.plot(avg_loss, label='Average loss')
+    ax.plot(total_loss, label='Loss')
+    # ax.fill_between(range(len(avg_loss)), np.subtract(avg_loss, std_loss), np.add(avg_loss, std_loss), alpha=0.2, label='Reward StdDev')
+
+    ax.set_xlabel('Episode')
+    ax.set_ylabel('Loss')
+    xtick_labels = [str(i*ep_per_stat) for i in range(len(total_loss) // ep_per_stat)]
+    plt.xticks(range(0, len(total_loss), ep_per_stat), xtick_labels)
     ax.legend(loc='lower right')
     plt.show()
 
@@ -127,9 +153,11 @@ def main(training_mode=True, pretrained=False, lr=0.0001, gamma=0.90, exploratio
     env.reset()
     total_rewards = []
     total_info = []
+    total_loss = []
 
     if pretrained:
         total_rewards = load_rewards(from_file='total_rewards-{}.pkl'.format(run_id))
+        total_loss = load_loss(from_file='total_loss-{}.pkl'.format(run_id))
     
     offset = len(total_rewards)   
     for iteration in tqdm(range(num_episodes)):
@@ -176,7 +204,11 @@ def main(training_mode=True, pretrained=False, lr=0.0001, gamma=0.90, exploratio
             
             if training_mode:
                 agent.remember(state, two_actions_index, reward, state_next, terminal)
-                agent.experience_replay()
+                replay_result = agent.experience_replay(debug=True)
+                if replay_result is not None:
+                    _, _, loss = replay_result
+                    total_loss.append(loss)
+
             
             state = state_next
             if terminal:
@@ -186,7 +218,7 @@ def main(training_mode=True, pretrained=False, lr=0.0001, gamma=0.90, exploratio
         total_rewards.append(total_reward)
 
         if training_mode and (ep_num % ep_per_stat) == 0 and ep_num != 0:
-            save_checkpoint(agent, total_rewards, total_info, run_id)
+            save_checkpoint(agent, total_rewards, total_info, total_loss, run_id)
 
         with open(f'total_reward-{run_id}.txt', 'a') as f:
             f.write("Total reward after episode {} is {}\n".format(ep_num + 1, total_rewards[-1]))
@@ -202,7 +234,7 @@ def main(training_mode=True, pretrained=False, lr=0.0001, gamma=0.90, exploratio
             f.write(json.dumps(action_freq) + "\n\n")
     
     if training_mode:
-        save_checkpoint(agent, total_rewards, total_info, run_id)
+        save_checkpoint(agent, total_rewards, total_info, total_loss, run_id)
     
     env.close()
     fh.close()

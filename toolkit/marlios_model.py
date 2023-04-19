@@ -21,6 +21,7 @@ class DQNSolver(nn.Module):
 
     def __init__(self, input_shape):
         super(DQNSolver, self).__init__()
+        self.action_size = 10
         self.conv = nn.Sequential(
             nn.Conv2d(input_shape[0], 64, kernel_size=8, stride=4),
             nn.LeakyReLU(),
@@ -31,12 +32,17 @@ class DQNSolver(nn.Module):
         )
 
         conv_out_size = self._get_conv_out(input_shape)
-        action_size = 10
         # We take a vector of 5 being the initial action, and 5 being the second action for action size of 10
+        self.actions_fc = nn.Sequential(
+            nn.Linear(self.action_size, 100),
+            nn.ReLU()
+        )
         self.fc = nn.Sequential(
-            nn.Linear(conv_out_size + action_size, 512),
+            nn.Linear(conv_out_size + 100, 512),
+            nn.BatchNorm1d(512),
             nn.ReLU(),
             nn.Linear(512, 64), # added a new layer can play with the parameters
+            nn.BatchNorm1d(64),
             nn.ReLU(),
             nn.Linear(64, 1)
         )
@@ -52,8 +58,20 @@ class DQNSolver(nn.Module):
         '''
         conv_out = self.conv(x).view(x.size()[0], -1)
         batched_conv_out = conv_out.reshape(conv_out.shape[0], 1, conv_out.shape[-1]).repeat(1, sampled_actions.shape[-2], 1)
-        batched_actions = torch.cat((batched_conv_out, sampled_actions), dim=2)
-        out =  torch.flatten(self.fc(batched_actions), start_dim=1)
+
+        batched_actions = self.actions_fc(sampled_actions)
+        
+        batched_state_actions = torch.cat((batched_conv_out, batched_actions), dim=2)
+        # out =  torch.flatten(self.fc(batched_state_actions), start_dim=1)
+
+        # Reshape input to 2D tensor before passing through fc layers
+        reshaped_input = batched_state_actions.view(-1, batched_state_actions.shape[-1])
+
+        fc_output = self.fc(reshaped_input)
+
+        # Reshape output back to 3D tensor
+        out = fc_output.view(batched_state_actions.shape[0], batched_state_actions.shape[1], -1)
+        out =  torch.flatten(out, start_dim=1)
 
         return out
     
@@ -232,5 +250,4 @@ class DQNAgent:
         # Makes sure that exploration rate is always at least 'exploration min'
         self.exploration_rate = max(self.exploration_rate, self.exploration_min)
 
-        if debug:
-            return target, current, loss
+        return target, current, loss
