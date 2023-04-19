@@ -63,11 +63,11 @@ class DQNSolver(nn.Module):
 
 class DQNAgent:
 
-    def __init__(self, action_space, max_memory_size, batch_size, gamma, lr,
+    def __init__(self, action_space, max_memory_size, batch_size, gamma, lr, state_space,
                  dropout, exploration_max, exploration_min, exploration_decay, double_dq, pretrained, run_id='', n_actions = 32):
 
         # Define DQN Layers
-        self.state_space = (1, 84, 84) # hardcoding this for now
+        self.state_space = state_space
 
         self.action_space = action_space # this will be a set of actions ie: a subset of TWO_ACTIONS in constants.py
         self.n_actions = n_actions # initial number of actions to sample

@@ -90,8 +90,18 @@ class BufferWrapper(gym.ObservationWrapper):
         super(BufferWrapper, self).__init__(env)
         self.dtype = dtype
         old_space = env.observation_space
+        
+        # Think this could be used if we wanted to still have rgb but would be harder
+        # self.observation_space = gym.spaces.Box(
+        #     low=np.expand_dims(old_space.low, axis=0).repeat(n_steps, axis=0),
+        #     high=np.expand_dims(old_space.low, axis=0).repeat(n_steps, axis=0),
+        #     shape=(n_steps,) + old_space.shape,
+        #     dtype=dtype
+        # )
+
         self.observation_space = gym.spaces.Box(old_space.low.repeat(n_steps, axis=0),
-                                                old_space.high.repeat(n_steps, axis=0), dtype=dtype)
+                                                old_space.high.repeat(n_steps, axis=0))
+                                                # shape=(nold_space.shape, dtype=dtype)
 
     def reset(self):
         self.buffer = np.zeros_like(self.observation_space.low, dtype=self.dtype)
