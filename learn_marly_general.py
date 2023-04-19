@@ -219,12 +219,13 @@ if __name__ == "__main__":
     parser.add_argument("--gamma", type=float, default=0.90, help="Discount factor (default: 0.90)")
     parser.add_argument("--exploration-decay", type=float, default=0.99, help="Exploration decay (default: 0.99)")
     parser.add_argument("--exploration-min", type=float, default=0.02, help="Exploration minimum (default: 0.02)")
-    parser.add_argument("--exploration-max", type=float, default=0.02, help="Exploration maximum (default: 1.00)")
+    parser.add_argument("--exploration-max", type=float, default=1, help="Exploration maximum (default: 1.00)")
     parser.add_argument("--mario-env", type=str, default='SuperMarioBros-1-1-v0', help="Mario environment (default: 'SuperMarioBros-1-1-v0')")
     parser.add_argument("--actions", type=str, default='SIMPLE_MOVEMENT', help="Actions (default: 'SIMPLE_MOVEMENT')")
     parser.add_argument("--num-episodes", type=int, default=10, help="Number of episodes (default: 10)")
     parser.add_argument("--run-id", type=str, default=None, help="Run ID (default: epoch timestring)")
-    parser.add_argument("--ep-stat", type=int, default=100, help="Number of episodes tto store stats (default: 100)")
+    parser.add_argument("--ep-stat", type=int, default=100, help="Number of episodes to store stats (default: 100)")
+    parser.add_argument("--n-actions", type=int, default=None, help="Number of actions to to give to model (default: 14)")
 
     args = parser.parse_args()
     print('test: ', args)
@@ -233,6 +234,9 @@ if __name__ == "__main__":
         action_space = getattr(action_constants, args.actions)
     except AttributeError as e:
         raise ValueError("Invalid actions argument.")
+    
+    if (not args.n_actions):
+        n_actions = len(action_space) + 2
 
 
 
@@ -247,7 +251,7 @@ if __name__ == "__main__":
          mario_env=args.mario_env,
          action_space=action_space,
          num_episodes=args.num_episodes,
-         n_actions=len(action_space) + 2, # +2 for no-op and sufficient action
+         n_actions=n_actions, # +2 for no-op and sufficient action
          run_id=args.run_id)
     
 
