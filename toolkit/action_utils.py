@@ -26,10 +26,11 @@ def sample_actions(action_set, n_actions, sample_suff_actions=True):
         action_vectors[i] = vec
 
     suff_action_idx = np.random.randint(0, len(SUFFICIENT_ACTIONS))
+    right_suff_action_idx = np.random.randint(0, len(RIGHT_SUFFICIENT_ACTIONS))
 
     if sample_suff_actions:
         action_vectors[n_actions - 2] = action_to_vec(SUFFICIENT_ACTIONS[suff_action_idx])
-        action_vectors[n_actions - 1] = action_to_vec(RIGHT_SUFFICIENT_ACTIONS[suff_action_idx])
+        action_vectors[n_actions - 1] = action_to_vec(RIGHT_SUFFICIENT_ACTIONS[right_suff_action_idx])
 
         # always want to have the noop action available
         # action_vectors[n_actions - 1] = np.zeros_like(action_vectors[0])

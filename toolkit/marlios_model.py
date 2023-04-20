@@ -210,6 +210,7 @@ class DQNAgent:
             # Local net is used for the policy
 
             # Updated for generalization:
+        self.cur_action_space = torch.from_numpy(self.subsample_actions(self.n_actions, self.sample_suff_actions)).to(torch.float32).to(self.device).unsqueeze(0) # make it include a batch dimension by defautl
         results = self.local_net(state.to(self.device), self.cur_action_space).cpu()
         return torch.argmax(results, dim=1)
         # action = torch.tensor(self.cur_action_space[act_index])
@@ -249,7 +250,7 @@ class DQNAgent:
         loss.backward() # Compute gradients
         self.optimizer.step() # Backpropagate error
 
-        self.cur_action_space = torch.from_numpy(self.subsample_actions(self.n_actions, self.sample_suff_actions)).to(torch.float32).to(self.device)
+        # self.cur_action_space = torch.from_numpy(self.subsample_actions(self.n_actions, self.sample_suff_actions)).to(torch.float32).to(self.device).unsqueeze(0) # make it include a batch dimension by defautl
         # I am disabling this here for my testing, but also think we should add it to the run loop for testing til we are sure it works, idk
 
         self.exploration_rate *= self.exploration_decay
