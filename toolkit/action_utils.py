@@ -1,6 +1,6 @@
 import numpy as np
 import random
-from toolkit.constants import BUTTONS, ACTION_SPACE, BUTTON_MAP, SUFFICIENT_ACTIONS
+from toolkit.constants import BUTTONS, ACTION_SPACE, BUTTON_MAP, SUFFICIENT_ACTIONS, RIGHT_SUFFICIENT_ACTIONS
 
 
 '''
@@ -29,9 +29,10 @@ def sample_actions(action_set, n_actions, sample_suff_actions=True):
 
     if sample_suff_actions:
         action_vectors[n_actions - 2] = action_to_vec(SUFFICIENT_ACTIONS[suff_action_idx])
+        action_vectors[n_actions - 1] = action_to_vec(RIGHT_SUFFICIENT_ACTIONS[suff_action_idx])
 
         # always want to have the noop action available
-        action_vectors[n_actions - 1] = np.zeros_like(action_vectors[0])
+        # action_vectors[n_actions - 1] = np.zeros_like(action_vectors[0])
 
     return action_vectors
 
