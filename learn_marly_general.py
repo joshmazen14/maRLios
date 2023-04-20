@@ -98,7 +98,7 @@ def plot_rewards(ep_per_stat = 100, total_rewards = [], from_file = None):
 
 def plot_loss(ep_per_stat = 100, total_loss = [], from_file = None):
     if from_file != None:
-        total_loss = load_loss(total_loss)
+        total_loss = load_loss(from_file)
        
     # avg_loss = [np.mean(total_loss[i:i+ep_per_stat]) for i in range(0, len(total_loss), ep_per_stat)]
     # std_loss = [np.std(total_loss[i:i+ep_per_stat]) for i in range(0, len(total_loss), ep_per_stat)]
@@ -207,7 +207,7 @@ def main(training_mode=True, pretrained=False, lr=0.0001, gamma=0.90, exploratio
                 replay_result = agent.experience_replay(debug=True)
                 if replay_result is not None:
                     _, _, loss = replay_result
-                    total_loss.append(loss)
+                    total_loss.append(loss.mean().item())
 
             
             state = state_next
