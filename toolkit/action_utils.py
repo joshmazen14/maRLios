@@ -7,17 +7,23 @@ from toolkit.constants import BUTTONS, ACTION_SPACE, BUTTON_MAP, SUFFICIENT_ACTI
 PRE: action set has been filtered to not include the holdout actions
 Returns: an array of action vector representations to feed into our fc network
 '''
-def sample_actions(action_set, n_actions):
+def sample_actions(action_set, n_actions, add_sufficient=False):
     '''
     action_set - the actions available to the agent
     n_actions - batch size
+    add_sufficient - argument to specify whether we want to add a sufficient action or not
 
     We will in actuality sample n_actions - 1 from the general action space, and sample the remaining action from the sufficient action space. This
     May introduce a single duplicate value with some small probability, but we think that will not pose much of an issue. This is done to ensure
     that the sampled actions always contain an action that can be used to complete the level. 
     '''
     action_vectors = np.zeros((n_actions, 10))
-    sampled_idx = random.sample(range(len(action_set)), n_actions-2)
+
+    dif = 0
+    if add_sufficient:
+        dif = 2
+
+    sampled_idx = random.sample(range(len(action_set)), n_actions-dif)
     cur_actions = [action_set[i] for i in sampled_idx]
 
 
@@ -25,11 +31,11 @@ def sample_actions(action_set, n_actions):
         vec = action_to_vec(actions)
         action_vectors[i] = vec
 
-    suff_action_idx = np.random.randint(0, len(SUFFICIENT_ACTIONS))
-    action_vectors[n_actions - 2] = action_to_vec(SUFFICIENT_ACTIONS[suff_action_idx])
-
-    # always want to have the noop action available
-    action_vectors[n_actions - 1] = np.zeros_like(action_vectors[0])
+    if add_sufficient:
+        suff_action_idx = np.random.randint(0, len(SUFFICIENT_ACTIONS))
+        action_vectors[n_actions - dif] = action_to_vec(SUFFICIENT_ACTIONS[suff_action_idx])
+         # always want to have the noop action available
+        action_vectors[n_actions - 1] = np.zeros_like(action_vectors[0])
 
     return action_vectors
 

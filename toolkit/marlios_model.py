@@ -23,22 +23,36 @@ class DQNSolver(nn.Module):
         super(DQNSolver, self).__init__()
         self.conv = nn.Sequential(
             nn.Conv2d(input_shape[0], 64, kernel_size=8, stride=4),
+            nn.MaxPool2d(kernel_size=3, stride=1),
             nn.LeakyReLU(),
-            nn.Conv2d(64, 64, kernel_size=4, stride=2),
+            nn.Conv2d(64, 64, kernel_size=6, stride=4),
+            nn.MaxPool2d(kernel_size=2, stride=1),
             nn.LeakyReLU(),
             nn.Conv2d(64, 64, kernel_size=3, stride=1),
             nn.LeakyReLU()
         )
-
         conv_out_size = self._get_conv_out(input_shape)
+        # takes the output of the convolutions and gets vector to size 32
+        self.conv_to_32 = nn.Sequential(
+            nn.Linear(conv_out_size, 32),
+            nn.LeakyReLU()
+        )
+
         action_size = 10
+
+        self.action_fc = nn.Sequential(
+            nn.Linear(action_size, 32),
+            nn.LeakyReLU(),
+            nn.Linear(32, 32)
+        )
+        
         # We take a vector of 5 being the initial action, and 5 being the second action for action size of 10
         self.fc = nn.Sequential(
-            nn.Linear(conv_out_size + action_size, 512),
-            nn.ReLU(),
-            nn.Linear(512, 64), # added a new layer can play with the parameters
-            nn.ReLU(),
-            nn.Linear(64, 1)
+            nn.Linear(64, 64),
+            nn.LeakyReLU(),
+            nn.Linear(64, 32), # added a new layer can play with the parameters
+            nn.LeakyReLU(),
+            nn.Linear(32, 1)
         )
     
     def _get_conv_out(self, shape):
@@ -50,12 +64,73 @@ class DQNSolver(nn.Module):
         x - image being passed in as the state
         sampled_actions - np.array with n x 8 
         '''
-        conv_out = self.conv(x).view(x.size()[0], -1)
+        big_conv_out = self.conv(x).view(x.size()[0], -1)
+        conv_out = self.conv_to_32(big_conv_out)
+
         batched_conv_out = conv_out.reshape(conv_out.shape[0], 1, conv_out.shape[-1]).repeat(1, sampled_actions.shape[-2], 1)
-        batched_actions = torch.cat((batched_conv_out, sampled_actions), dim=2)
+
+        latent_actions = self.action_fc(sampled_actions)
+
+        batched_actions = torch.cat((batched_conv_out, latent_actions), dim=2)
+
         out =  torch.flatten(self.fc(batched_actions), start_dim=1)
 
         return out
+
+
+# class DQNSolver(nn.Module):
+
+#     def __init__(self, input_shape):
+#         super(DQNSolver, self).__init__()
+#         self.conv = nn.Sequential(
+#             nn.Conv2d(input_shape[0], 64, kernel_size=8, stride=4),
+#             nn.MaxPool2d(kernel_size=4, stride=2),
+#             nn.LeakyReLU(),
+#             nn.Conv2d(64, 64, kernel_size=6, stride=4),
+#             nn.MaxPool2d(kernel_size=4, stride=2),
+#             nn.LeakyReLU(),
+#             nn.Conv2d(64, 64, kernel_size=3, stride=1),
+#             nn.LeakyReLU()
+#         )
+
+#         conv_out_size = self._get_conv_out(input_shape)
+#         print("conv_out_size: ",conv_out_size)
+#         action_size = 10
+
+#         self.action_fc = nn.Sequential(
+#             nn.Linear(action_size, 30),
+#             nn.LeakyReLU(),
+#             nn.Linear(30, action_size), # this doesn't neeeed to go to action size necessarily
+#         )
+        
+#         # We take a vector of 5 being the initial action, and 5 being the second action for action size of 10
+#         self.fc = nn.Sequential(
+#             nn.Linear(conv_out_size + action_size, 512),
+#             nn.ReLU(),
+#             nn.Linear(512, 64), # added a new layer can play with the parameters
+#             nn.ReLU(),
+#             nn.Linear(64, 1)
+#         )
+    
+#     def _get_conv_out(self, shape):
+#         o = self.conv(torch.zeros(1, *shape))
+#         return int(np.prod(o.size()))
+
+#     def forward(self, x, sampled_actions):
+#         '''
+#         x - image being passed in as the state
+#         sampled_actions - np.array with n x 8 
+#         '''
+#         conv_out = self.conv(x).view(x.size()[0], -1)
+#         batched_conv_out = conv_out.reshape(conv_out.shape[0], 1, conv_out.shape[-1]).repeat(1, sampled_actions.shape[-2], 1)
+
+#         latent_actions = self.action_fc(sampled_actions)
+
+#         batched_actions = torch.cat((batched_conv_out, latent_actions), dim=2)
+
+#         out =  torch.flatten(self.fc(batched_actions), start_dim=1)
+
+#         return out
     
 
 class DQNAgent:
