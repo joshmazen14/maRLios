@@ -7,7 +7,7 @@ from toolkit.constants import BUTTONS, ACTION_SPACE, BUTTON_MAP, SUFFICIENT_ACTI
 PRE: action set has been filtered to not include the holdout actions
 Returns: an array of action vector representations to feed into our fc network
 '''
-def sample_actions(action_set, n_actions):
+def sample_actions(action_set, n_actions, sample_suff_actions=True):
     '''
     action_set - the actions available to the agent
     n_actions - batch size
@@ -26,10 +26,12 @@ def sample_actions(action_set, n_actions):
         action_vectors[i] = vec
 
     suff_action_idx = np.random.randint(0, len(SUFFICIENT_ACTIONS))
-    action_vectors[n_actions - 2] = action_to_vec(SUFFICIENT_ACTIONS[suff_action_idx])
 
-    # always want to have the noop action available
-    action_vectors[n_actions - 1] = np.zeros_like(action_vectors[0])
+    if sample_suff_actions:
+        action_vectors[n_actions - 2] = action_to_vec(SUFFICIENT_ACTIONS[suff_action_idx])
+
+        # always want to have the noop action available
+        action_vectors[n_actions - 1] = np.zeros_like(action_vectors[0])
 
     return action_vectors
 

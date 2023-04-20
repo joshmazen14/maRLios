@@ -34,17 +34,22 @@ class DQNSolver(nn.Module):
         conv_out_size = self._get_conv_out(input_shape)
         # We take a vector of 5 being the initial action, and 5 being the second action for action size of 10
         self.actions_fc = nn.Sequential(
-            nn.Linear(self.action_size, 100),
-            nn.ReLU()
+            # nn.Linear(self.action_size, 100),
+            nn.Linear(self.action_size, 40),
+            # nn.ReLU()
         )
         self.fc = nn.Sequential(
-            nn.Linear(conv_out_size + 100, 512),
+            # nn.Linear(conv_out_size + 100, 512),
+            nn.Linear(conv_out_size + 40, 512),
             nn.BatchNorm1d(512),
             nn.ReLU(),
-            nn.Linear(512, 64), # added a new layer can play with the parameters
-            nn.BatchNorm1d(64),
+            nn.Linear(512, 32), # added a new layer can play with the parameters
+            nn.BatchNorm1d(32),
+            # nn.Linear(512, 64), # added a new layer can play with the parameters
+            # nn.BatchNorm1d(64),
             nn.ReLU(),
-            nn.Linear(64, 1)
+            # nn.Linear(64, 1)
+            nn.Linear(32, 1)
         )
     
     def _get_conv_out(self, shape):
@@ -79,7 +84,7 @@ class DQNSolver(nn.Module):
 class DQNAgent:
 
     def __init__(self, action_space, max_memory_size, batch_size, gamma, lr, state_space,
-                 dropout, exploration_max, exploration_min, exploration_decay, double_dq, pretrained, run_id='', n_actions = 32):
+                 dropout, exploration_max, exploration_min, exploration_decay, double_dq, pretrained, run_id='', n_actions = 32,  sample_actions =True):
 
         # Define DQN Layers
         self.state_space = state_space
@@ -93,7 +98,7 @@ class DQNAgent:
         elif torch.backends.mps.is_available():
             self.device = 'mps'
         
-        self.cur_action_space = torch.from_numpy(self.subsample_actions(self.n_actions)).to(torch.float32).to(self.device).unsqueeze(0) # make it include a batch dimension by defautl
+        self.cur_action_space = torch.from_numpy(self.subsample_actions(self.n_actions, sample_actions)).to(torch.float32).to(self.device).unsqueeze(0) # make it include a batch dimension by defautl
 
         self.double_dq = double_dq
         self.pretrained = pretrained
@@ -155,11 +160,11 @@ class DQNAgent:
         self.exploration_decay = exploration_decay
         
 
-    def subsample_actions(self, n_actions):
+    def subsample_actions(self, n_actions, sample_suff_actions):
         '''
         Returns numpy array 
         '''
-        return toolkit.action_utils.sample_actions(self.action_space, n_actions)
+        return toolkit.action_utils.sample_actions(self.action_space, n_actions, sample_suff_actions)
 
 
     def remember(self, state, action, reward, state2, done):
