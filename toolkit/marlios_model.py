@@ -36,6 +36,7 @@ class DQNSolver(nn.Module):
         self.actions_fc = nn.Sequential(
             # nn.Linear(self.action_size, 100),
             nn.Linear(self.action_size, 40),
+            nn.LeakyReLU(),
             # nn.ReLU()
         )
         self.fc = nn.Sequential(
