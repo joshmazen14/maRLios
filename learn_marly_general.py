@@ -272,6 +272,8 @@ if __name__ == "__main__":
     
     if (not args.n_actions):
         n_actions = len(action_space) + 2 if args.sample_actions else len(action_space)
+    else:
+        n_actions = args.n_actions
 
 
 
