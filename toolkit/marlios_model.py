@@ -92,6 +92,7 @@ class DQNAgent:
 
         self.action_space = action_space # this will be a set of actions ie: a subset of TWO_ACTIONS in constants.py
         self.n_actions = n_actions # initial number of actions to sample
+        self.sample_suff_actions = sample_actions # whether to sample the sufficient actions or not
 
         self.device ='cpu'
         if torch.cuda.is_available():
@@ -248,7 +249,7 @@ class DQNAgent:
         loss.backward() # Compute gradients
         self.optimizer.step() # Backpropagate error
 
-        self.cur_action_space = torch.from_numpy(self.subsample_actions(self.n_actions)).to(torch.float32).to(self.device)
+        self.cur_action_space = torch.from_numpy(self.subsample_actions(self.n_actions, self.sample_suff_actions)).to(torch.float32).to(self.device)
         # I am disabling this here for my testing, but also think we should add it to the run loop for testing til we are sure it works, idk
 
         self.exploration_rate *= self.exploration_decay
