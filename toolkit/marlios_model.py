@@ -163,7 +163,8 @@ class DQNAgent:
         if self.pretrained:
             self.local_net.load_state_dict(torch.load(f"dq1-{run_id}.pt", map_location=torch.device(self.device)))
             self.target_net.load_state_dict(torch.load(f"dq2-{run_id}.pt", map_location=torch.device(self.device)))
-                
+        
+        self.lr = lr
         self.optimizer = torch.optim.Adam(self.local_net.parameters(), lr=lr)
         self.copy = 5000  # Copy the local model weights into the target network every 5000 steps
         self.step = 0
@@ -267,7 +268,18 @@ class DQNAgent:
         # Copy local net weights into target net
         
         self.target_net.load_state_dict(self.local_net.state_dict())
-    
+
+    def decay_exploration(self):
+        self.exploration_rate *= self.exploration_decay
+        
+        # Makes sure that exploration rate is always at least 'exploration min'
+        self.exploration_rate = max(self.exploration_rate, self.exploration_min)
+    def decay_lr(self, lr_decay):
+        self.lr *= lr_decay
+        self.lr = max(self.lr, 0.000001)
+        for g in self.optimizer.param_groups:
+            g['lr'] = self.lr
+
     def experience_replay(self, debug=False):
         
         if self.step % self.copy == 0:
@@ -300,11 +312,7 @@ class DQNAgent:
 
         # self.cur_action_space = torch.from_numpy(self.subsample_actions(self.n_actions)).to(torch.float32).to(self.device)
         # I am disabling this here for my testing, but also think we should add it to the run loop for testing til we are sure it works, idk
-
-        self.exploration_rate *= self.exploration_decay
-        
-        # Makes sure that exploration rate is always at least 'exploration min'
-        self.exploration_rate = max(self.exploration_rate, self.exploration_min)
+        # decay lr
 
         if debug:
             return target, current, loss
