@@ -6,15 +6,9 @@ import torch
 # import torchvision
 import torch.nn as nn
 import random
-from nes_py.wrappers import JoypadSpace
-from gym_super_mario_bros import SuperMarioBrosEnv
-from tqdm import tqdm
 import numpy as np
 import pickle 
 import numpy as np
-import collections 
-import cv2
-import matplotlib.pyplot as plt
 import toolkit.action_utils 
 
 class DQNSolver(nn.Module):
