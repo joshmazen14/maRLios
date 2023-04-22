@@ -1,1 +1,0 @@
-{"total reward": 211.0, "current lr": 0.0001, "current exploration": 1, "flag acquired": false, "game score": 0, "time": 10, "time remaining on clock": 390, "_timestamp": 1682135599.5538828, "_runtime": 4.960769891738892, "_step": 56, "average replay loss": "None.ndarray.item", "_wandb": {"runtime": 91}}
