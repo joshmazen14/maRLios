@@ -1,0 +1,33 @@
+{
+    "os": "macOS-13.0.1-arm64-arm-64bit",
+    "python": "3.10.11",
+    "heartbeatAt": "2023-04-22T03:43:23.101903",
+    "startedAt": "2023-04-22T03:43:16.454336",
+    "docker": null,
+    "cuda": null,
+    "args": null,
+    "state": "running",
+    "program": "<python with no main file>",
+    "git": {
+        "remote": "https://github.com/joshmazen14/maRLios.git",
+        "commit": "258d42f210b4059a706d95ae4fa3e66792dbdc78"
+    },
+    "email": "cameronwitz21@gmail.com",
+    "root": "/Users/cameronwitz/Desktop/CSCI_566/maRLios",
+    "host": "usc-guestwireless-upc-newsc16828.usc.edu",
+    "username": "cameronwitz",
+    "executable": "/Users/cameronwitz/Desktop/CSCI_566/env/bin/python3",
+    "cpu_count": 10,
+    "cpu_count_logical": 10,
+    "disk": {
+        "total": 926.3517189025879,
+        "used": 11.957233428955078
+    },
+    "gpuapple": {
+        "type": "arm",
+        "vendor": "Apple"
+    },
+    "memory": {
+        "total": 16.0
+    }
+}

@@ -280,7 +280,7 @@ class DQNAgent:
             self.copy_model()
 
         if self.memory_sample_size > self.num_in_queue:
-            return
+            return None
 
         STATE, ACTION, REWARD, STATE2, DONE, SPACE = self.recall()
         STATE = STATE.to(self.device)
@@ -308,5 +308,7 @@ class DQNAgent:
         # I am disabling this here for my testing, but also think we should add it to the run loop for testing til we are sure it works, idk
         # decay lr
 
+        self.decay_exploration()
+
         if debug:
-            return target, current, loss
+            return loss.float()
