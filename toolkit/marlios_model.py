@@ -130,19 +130,21 @@ class DQNSolver(nn.Module):
 class DQNAgent:
 
     def __init__(self, action_space, max_memory_size, batch_size, gamma, lr, state_space,
-                 dropout, exploration_max, exploration_min, exploration_decay, double_dq, pretrained, run_id='', n_actions = 32):
+                 dropout, exploration_max, exploration_min, exploration_decay, double_dq, pretrained, run_id='', n_actions = 32, device=None):
 
         # Define DQN Layers
         self.state_space = state_space
 
         self.action_space = action_space # this will be a set of actions ie: a subset of TWO_ACTIONS in constants.py
         self.n_actions = n_actions # initial number of actions to sample
-
-        self.device ='cpu'
-        if torch.cuda.is_available():
-            self.device = 'cuda'
-        elif torch.backends.mps.is_available():
-            self.device = 'mps'
+        if device == None:
+            self.device ='cpu'
+            if torch.cuda.is_available():
+                self.device = 'cuda'
+            elif torch.backends.mps.is_available():
+                self.device = 'mps'
+        else:
+            self.device = device
         
         self.cur_action_space = torch.from_numpy(self.subsample_actions(self.n_actions)).to(torch.float32).to(self.device).unsqueeze(0) # make it include a batch dimension by defautl
 
@@ -308,7 +310,7 @@ class DQNAgent:
         # I am disabling this here for my testing, but also think we should add it to the run loop for testing til we are sure it works, idk
         # decay lr
 
-        self.decay_exploration()
+        # self.decay_exploration()
 
         if debug:
             return loss.float()

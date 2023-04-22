@@ -55,7 +55,7 @@ def load_item(from_file):
 
 def plot_rewards(ep_per_stat = 100, total_rewards = [], from_file = None):
     if from_file != None:
-        total_rewards = load_rewards(total_rewards)
+        total_rewards = load_item(total_rewards)
        
     avg_rewards = [np.mean(total_rewards[i:i+ep_per_stat]) for i in range(0, len(total_rewards), ep_per_stat)]
     std_rewards = [np.std(total_rewards[i:i+ep_per_stat]) for i in range(0, len(total_rewards), ep_per_stat)]
@@ -76,7 +76,7 @@ def plot_rewards(ep_per_stat = 100, total_rewards = [], from_file = None):
 
 # run function implements the wandb logging
 def train(training_mode=True, pretrained=False, lr=0.0001, gamma=0.90, exploration_decay=0.995, exploration_min=0.02, ep_per_stat = 100, exploration_max = 1, 
-        lr_decay = 0.99, mario_env='SuperMarioBros-1-1-v0', action_space=TWO_ACTIONS_SET, num_episodes=1000, run_id=None, n_actions=20, debug = True, name=None, max_time_per_ep = 500):
+        lr_decay = 0.99, mario_env='SuperMarioBros-1-1-v0', action_space=TWO_ACTIONS_SET, num_episodes=1000, run_id=None, n_actions=20, debug = True, name=None, max_time_per_ep = 500, device=None):
     
 
     run_id = run_id or generate_epoch_time_id()
@@ -91,6 +91,7 @@ def train(training_mode=True, pretrained=False, lr=0.0001, gamma=0.90, explorati
         # track hyperparameters and run metadata
         config={
         "name": name or run_id,
+        "run_id": run_id,
         "lr": lr,
         "lr_decay": lr_decay,
         "exploration_decay": exploration_decay,
@@ -123,10 +124,14 @@ def train(training_mode=True, pretrained=False, lr=0.0001, gamma=0.90, explorati
                      double_dq=True,
                      pretrained=pretrained,
                      run_id=run_id,
-                     n_actions=n_actions)
+                     n_actions=n_actions,
+                     device=device
+                     )
     
 
-    # wandb.watch(agent.local_net, log_freq=100, log='all')
+    # see if anyone can get this to work, i think it doesn't work on mps
+    if device != 'mps':
+        wandb.watch(agent.local_net, log_freq=100, log='all')
 
     # num_episodes = 10
     env.reset()
@@ -181,8 +186,9 @@ def train(training_mode=True, pretrained=False, lr=0.0001, gamma=0.90, explorati
         
             agent.remember(state, two_actions_index, reward, state_next, terminal)
             loss = agent.experience_replay(debug=debug)
+
             if loss != None:
-                avg_loss_replay = torch.mean(loss).cpu().data.numpy().item
+                avg_loss_replay = torch.mean(loss).cpu().data.numpy().item(0)
                 wandb.log({"average replay loss": avg_loss_replay})
                 losses.append(avg_loss_replay)
             
@@ -193,10 +199,15 @@ def train(training_mode=True, pretrained=False, lr=0.0001, gamma=0.90, explorati
         total_info.append(info)
         total_rewards.append(total_reward)
         if len(losses):
-            print(losses)
             avg_losses.append(np.mean(losses))
         if len(avg_losses):
             wandb.log({"average episode loss": avg_losses[-1]})
+
+        avg_total_reward=0
+        std_dev_total_reward=0
+        if len(total_rewards)>ep_per_stat:
+            avg_total_reward = np.average(total_rewards[-ep_per_stat:])
+            std_dev_total_reward = np.std(total_rewards[-ep_per_stat:])
 
         losses = []
 
@@ -206,12 +217,18 @@ def train(training_mode=True, pretrained=False, lr=0.0001, gamma=0.90, explorati
                    "current lr": agent.lr,
                    "current exploration": agent.exploration_rate,
                    "flag acquired": info['flag_get'],
-                   "game score": info['score'],
+                #    "game score": info['score'],
                    "time": time_taken,
-                   "time remaining on clock": info["time"]
+                #    "time remaining on clock": info["time"],
+                   "episode" : ep_num,
+                   "avg total reward" : avg_total_reward,
+                   "std dev total reward": std_dev_total_reward 
                    })
+        
+
 
         agent.decay_lr(lr_decay)
+        agent.decay_exploration()
 
         if training_mode and (ep_num % ep_per_stat) == 0 and ep_num != 0:
             save_checkpoint(agent, total_rewards, total_info, run_id)
