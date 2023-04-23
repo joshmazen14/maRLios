@@ -98,6 +98,7 @@ def train(training_mode=True, pretrained=False, lr=0.0001, gamma=0.90, explorati
         "n_actions": n_actions,
         "gamma": gamma,
         "episodes": num_episodes,
+        "ep_per_stat": ep_per_stat
         }
     )
 
@@ -156,6 +157,10 @@ def train(training_mode=True, pretrained=False, lr=0.0001, gamma=0.90, explorati
 
         action_freq = {}
         while True:
+            
+            # if steps%100 == 0 and steps>0:
+            #     agent.decay_exploration()
+
             two_actions_index = agent.act(state)
             two_actions_vector = agent.cur_action_space[0, two_actions_index[0]]
             two_actions = vec_to_action(two_actions_vector.cpu()) # tuple of actions
@@ -183,11 +188,14 @@ def train(training_mode=True, pretrained=False, lr=0.0001, gamma=0.90, explorati
             state_next = torch.Tensor([state_next])
             reward = torch.tensor([reward]).unsqueeze(0)        
             terminal = torch.tensor([int(terminal)]).unsqueeze(0)
+            time_taken = time_total - info["time"]
         
             agent.remember(state, two_actions_index, reward, state_next, terminal)
             loss = agent.experience_replay(debug=debug)
 
             if loss != None:
+                agent.decay_exploration()
+
                 avg_loss_replay = torch.mean(loss).cpu().data.numpy().item(0)
                 wandb.log({"average replay loss": avg_loss_replay})
                 losses.append(avg_loss_replay)
@@ -203,11 +211,12 @@ def train(training_mode=True, pretrained=False, lr=0.0001, gamma=0.90, explorati
         if len(avg_losses):
             wandb.log({"average episode loss": avg_losses[-1]})
 
-        avg_total_reward=0
-        std_dev_total_reward=0
-        if len(total_rewards)>ep_per_stat:
+
+        if len(total_rewards)%ep_per_stat == 0 and iteration > 0:
             avg_total_reward = np.average(total_rewards[-ep_per_stat:])
             std_dev_total_reward = np.std(total_rewards[-ep_per_stat:])
+            wandb.log({"avg total reward" : avg_total_reward,
+                       "std dev total reward": std_dev_total_reward })
 
         losses = []
 
@@ -220,15 +229,11 @@ def train(training_mode=True, pretrained=False, lr=0.0001, gamma=0.90, explorati
                 #    "game score": info['score'],
                    "time": time_taken,
                 #    "time remaining on clock": info["time"],
-                   "episode" : ep_num,
-                   "avg total reward" : avg_total_reward,
-                   "std dev total reward": std_dev_total_reward 
+                   "episode" : ep_num
                    })
-        
-
 
         agent.decay_lr(lr_decay)
-        agent.decay_exploration()
+        
 
         if training_mode and (ep_num % ep_per_stat) == 0 and ep_num != 0:
             save_checkpoint(agent, total_rewards, total_info, run_id)
@@ -250,5 +255,123 @@ def train(training_mode=True, pretrained=False, lr=0.0001, gamma=0.90, explorati
     if num_episodes > ep_per_stat:
         plot_rewards(ep_per_stat=ep_per_stat, total_rewards=total_rewards)
 
-    # wandb.finish()
+    wandb.finish()
 
+
+
+def show_state(env, ep=0, info=""):
+    plt.figure(3)
+    plt.clf()
+    plt.imshow(env.render(mode='rgb_array'))
+    plt.title("Episode: %d %s" % (ep, info))
+    plt.axis('off')
+
+    # display.clear_output(wait=True)
+    # display.display(plt.gcf())
+    display(plt.gcf(), clear=True)
+
+def visualize(run_id, action_space, n_actions, lr=0.0001, exploration_min=0.02, ep_per_stat = 100, exploration_max = 0.1, mario_env='SuperMarioBros-1-1-v0',  num_episodes=1000, log_stats = False):
+   
+   
+    fh = open(f'progress-{run_id}.txt', 'a')
+    env = gym.make(mario_env)
+    env = make_env(env, ACTION_SPACE)
+
+
+    # observation_space = env.observation_space.shape # not using this anymore
+
+    #todo: add agent params as a setting/create different agents in diff functions to run 
+    exploration_max = min(1, max(exploration_max, exploration_min))
+
+    agent = DQNAgent(
+                     state_space=env.observation_space.shape,
+                     action_space=action_space,
+                     max_memory_size=30000,
+                     batch_size=64,
+                     gamma=0.9,
+                     lr=lr,
+                     dropout=None,
+                     exploration_max=exploration_max,
+                     exploration_min=exploration_min,
+                     exploration_decay=0.9995,
+                     double_dq=True,
+                     pretrained=True,
+                     run_id=run_id,
+                     n_actions=n_actions)
+    
+    
+    # num_episodes = 10
+    env.reset()
+    total_rewards = []
+    total_info = []
+ 
+    for ep_num in tqdm(range(num_episodes)):
+      
+        state = env.reset() # take the final dimension of shape 
+        state = torch.Tensor([state])# converts (1, 84, 84) to (1, 1, 84, 84)
+        total_reward = 0
+        steps = 0
+
+        action_freq = {}
+        while True:
+
+            show_state(env, ep_num)
+
+            two_actions_index = agent.act(state)
+            two_actions_vector = agent.cur_action_space[0, two_actions_index[0]]
+            two_actions = vec_to_action(two_actions_vector.cpu()) # tuple of actions
+            
+            print(two_actions)
+
+            # debugging info
+            key = " | ".join([",".join(i) for i in two_actions])
+            if key in action_freq:
+                action_freq[key] += 1
+            else:
+                action_freq[key] = 1
+            
+            steps += 1
+            reward = 0
+            info = None
+            terminal = False
+            for action in two_actions: 
+                if not terminal:
+                    # compute index into ACTION_SPACE of our action
+                    step_action = ACTION_TO_INDEX[action]
+
+                    state_next, cur_reward, terminal, info = env.step(step_action)
+                    total_reward += cur_reward
+                    reward += cur_reward
+                    
+            state_next = torch.Tensor([state_next])
+            reward = torch.tensor([reward]).unsqueeze(0)        
+            terminal = torch.tensor([int(terminal)]).unsqueeze(0)
+            
+            
+            state = state_next
+            if terminal:
+                break
+
+        total_info.append(info)
+        total_rewards.append(total_reward)
+
+        if log_stats:
+            with open(f'visualized_rewards-{run_id}.txt', 'a') as f:
+                f.write("Total reward after episode {} is {}\n".format(ep_num + 1, total_rewards[-1]))
+                if (ep_num%100 == 0):
+                    f.write("==================\n")
+                    f.write("{} current time at episode {}\n".format(datetime.datetime.now(), ep_num+1))
+                    f.write("==================\n")
+                #print("Total reward after episode {} is {}".format(ep_num + 1, total_rewards[-1]))
+                num_episodes += 1
+            
+            with open(f'visualized_actions_chosen-{run_id}.txt', 'a') as f:
+                f.write("Action Frequencies for Episode {}, Exploration = {:4f}\n".format(ep_num + 1, agent.exploration_rate))
+                f.write(json.dumps(action_freq) + "\n\n")
+        
+    
+    env.close()
+    fh.close()
+    
+    if num_episodes > ep_per_stat:
+        plot_rewards(ep_per_stat=ep_per_stat, total_rewards=total_rewards)

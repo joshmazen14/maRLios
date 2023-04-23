@@ -17,7 +17,8 @@ class DQNSolver(nn.Module):
         super(DQNSolver, self).__init__()
         self.conv = nn.Sequential(
             nn.Conv2d(input_shape[0], 64, kernel_size=8, stride=4),
-            nn.MaxPool2d(kernel_size=3, stride=1),
+            nn.AvgPool2d(kernel_size=3, stride=1),
+            # nn.MaxPool2d(kernel_size=3, stride=1),
             nn.LeakyReLU(),
             nn.Conv2d(64, 64, kernel_size=6, stride=4),
             nn.MaxPool2d(kernel_size=2, stride=1),
@@ -26,26 +27,27 @@ class DQNSolver(nn.Module):
             nn.LeakyReLU()
         )
         conv_out_size = self._get_conv_out(input_shape)
+
         # takes the output of the convolutions and gets vector to size 32
         self.conv_to_32 = nn.Sequential(
             nn.Linear(conv_out_size, 32),
-            nn.LeakyReLU()
+            nn.ReLU()
         )
 
         action_size = 10
 
         self.action_fc = nn.Sequential(
             nn.Linear(action_size, 32),
-            nn.LeakyReLU(),
+            nn.ReLU(),
             nn.Linear(32, 32)
         )
         
         # We take a vector of 5 being the initial action, and 5 being the second action for action size of 10
         self.fc = nn.Sequential(
             nn.Linear(64, 64),
-            nn.LeakyReLU(),
+            nn.ReLU(),
             nn.Linear(64, 32), # added a new layer can play with the parameters
-            nn.LeakyReLU(),
+            nn.ReLU(),
             nn.Linear(32, 1)
         )
     
@@ -170,23 +172,11 @@ class DQNAgent:
         # Create memory
         self.max_memory_size = max_memory_size
         if self.pretrained:
-            # self.STATE_MEM = torch.load(f"STATE_MEM-{run_id}.pt")
-            # self.ACTION_MEM = torch.load(f"ACTION_MEM-{run_id}.pt")
-            # self.REWARD_MEM = torch.load(f"REWARD_MEM-{run_id}.pt")
-            # self.STATE2_MEM = torch.load(f"STATE2_MEM-{run_id}.pt")
-            # self.DONE_MEM = torch.load(f"DONE_MEM-{run_id}.pt")
-            # self.SPACE_MEM = torch.load(f"SPACE_MEM-{run_id}.pt")
             with open(f"ending_position-{run_id}.pkl", 'rb') as f:
                 self.ending_position = pickle.load(f)
             with open(f"num_in_queue-{run_id}.pkl", 'rb') as f:
                 self.num_in_queue = pickle.load(f)
         else:
-            # self.STATE_MEM = torch.zeros(max_memory_size, *self.state_space)
-            # self.ACTION_MEM = torch.zeros(max_memory_size, 1) # this needs to be a matrix of the actual action taken
-            # self.REWARD_MEM = torch.zeros(max_memory_size, 1)
-            # self.STATE2_MEM = torch.zeros(max_memory_size, *self.state_space)
-            # self.DONE_MEM = torch.zeros(max_memory_size, 1)
-            # self.SPACE_MEM = torch.zeros(max_memory_size, self.n_actions, 10)
             self.ending_position = 0
             self.num_in_queue = 0
 
@@ -272,7 +262,7 @@ class DQNAgent:
         self.exploration_rate = max(self.exploration_rate, self.exploration_min)
     def decay_lr(self, lr_decay):
         self.lr *= lr_decay
-        self.lr = max(self.lr, 0.000001)
+        self.lr = max(self.lr, 0.00000001)
         for g in self.optimizer.param_groups:
             g['lr'] = self.lr
 
