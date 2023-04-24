@@ -143,8 +143,8 @@ def train(training_mode=True, pretrained=False, lr=0.0001, gamma=0.90, explorati
     losses = []
     if pretrained:
         total_rewards = load_item(from_file='total_rewards-{}.pkl'.format(run_id))
-        total_losses = load_item(from_file='total_losses-{}.pkl'.format(run_id))
-        total_info = load_item(from_file='total_info-{}.pkl'.format(run_id))
+        # total_losses = load_item(from_file='total_losses-{}.pkl'.format(run_id))
+        # total_info = load_item(from_file='total_info-{}.pkl'.format(run_id))
     
     offset = len(total_rewards)   
     for iteration in tqdm(range(num_episodes)):
@@ -194,7 +194,7 @@ def train(training_mode=True, pretrained=False, lr=0.0001, gamma=0.90, explorati
             loss = agent.experience_replay(debug=debug)
 
             if loss != None:
-                agent.decay_exploration()
+                # agent.decay_exploration()
 
                 avg_loss_replay = torch.mean(loss).cpu().data.numpy().item(0)
                 wandb.log({"average replay loss": avg_loss_replay})
@@ -233,6 +233,7 @@ def train(training_mode=True, pretrained=False, lr=0.0001, gamma=0.90, explorati
                    })
 
         agent.decay_lr(lr_decay)
+        agent.decay_exploration()
         
 
         if training_mode and (ep_num % ep_per_stat) == 0 and ep_num != 0:

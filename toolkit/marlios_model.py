@@ -18,7 +18,6 @@ class DQNSolver(nn.Module):
         self.conv = nn.Sequential(
             nn.Conv2d(input_shape[0], 64, kernel_size=8, stride=4),
             nn.AvgPool2d(kernel_size=3, stride=1),
-            # nn.MaxPool2d(kernel_size=3, stride=1),
             nn.LeakyReLU(),
             nn.Conv2d(64, 64, kernel_size=6, stride=4),
             nn.MaxPool2d(kernel_size=2, stride=1),
@@ -39,7 +38,8 @@ class DQNSolver(nn.Module):
         self.action_fc = nn.Sequential(
             nn.Linear(action_size, 32),
             nn.ReLU(),
-            nn.Linear(32, 32)
+            nn.Linear(32, 32),
+            nn.ReLU()
         )
         
         # We take a vector of 5 being the initial action, and 5 being the second action for action size of 10
@@ -262,7 +262,7 @@ class DQNAgent:
         self.exploration_rate = max(self.exploration_rate, self.exploration_min)
     def decay_lr(self, lr_decay):
         self.lr *= lr_decay
-        self.lr = max(self.lr, 0.00000001)
+        self.lr = max(self.lr, 0.000000001)
         for g in self.optimizer.param_groups:
             g['lr'] = self.lr
 
