@@ -139,6 +139,8 @@ def train(training_mode=True, pretrained=False, lr=0.0001, gamma=0.90, explorati
     total_rewards = []
     total_info = []
     avg_losses = []
+    avg_rewards = []
+    avg_stdevs = []
 
     losses = []
     if pretrained:
@@ -195,7 +197,6 @@ def train(training_mode=True, pretrained=False, lr=0.0001, gamma=0.90, explorati
 
             if loss != None:
                 # agent.decay_exploration()
-
                 avg_loss_replay = torch.mean(loss).cpu().data.numpy().item(0)
                 wandb.log({"average replay loss": avg_loss_replay})
                 losses.append(avg_loss_replay)
@@ -206,29 +207,41 @@ def train(training_mode=True, pretrained=False, lr=0.0001, gamma=0.90, explorati
 
         total_info.append(info)
         total_rewards.append(total_reward)
+        # Gather loss stats
         if len(losses):
             avg_losses.append(np.mean(losses))
         if len(avg_losses):
             wandb.log({"average episode loss": avg_losses[-1]})
-
-
+        # gather average reward per eg:100 episodes stat
         if len(total_rewards)%ep_per_stat == 0 and iteration > 0:
-            avg_total_reward = np.average(total_rewards[-ep_per_stat:])
-            std_dev_total_reward = np.std(total_rewards[-ep_per_stat:])
-            wandb.log({"avg total reward" : avg_total_reward,
-                       "std dev total reward": std_dev_total_reward }, step = ep_num)
-
+            avg_rewards.append(np.average(total_rewards[-ep_per_stat:]))
+            avg_stdevs.append(np.std(total_rewards[-ep_per_stat:]))   
+       
         losses = []
 
-        time_taken = time_total - info["time"]
 
+        # plot the line charts:
+        time_taken = time_total - info["time"]
+        
+        # if len(avg_rewards):
+        #     ub = [i + j for i, j in zip(avg_rewards, avg_stdevs)]
+        #     lb = [i - j for i, j in zip(avg_rewards, avg_stdevs)]
+        #     wandb.log({"my_custom_id" : wandb.plot.line_series(
+        #                 xs=[i for i in range(0, ep_num, ep_per_stat)], 
+        #                 ys=[avg_rewards, ub, lb],
+        #                 keys=["Avg Total Rewards", "upper std", "lower std"],
+        #                 title="Avg Rewards per {} Episodes".format(ep_per_stat),
+        #                 xname="episode ({}'s)".format(ep_per_stat))})
+            
         wandb.log({"total reward" : total_reward, 
                    "current lr": agent.lr,
                    "current exploration": agent.exploration_rate,
                    "flag acquired": info['flag_get'],
                    "time": time_taken,
                    "x_position": info['x_pos'],
-                   }, step = ep_num)
+                   "episode" : ep_num,
+                   })
+
 
         agent.decay_lr(lr_decay)
         agent.decay_exploration()
@@ -242,9 +255,7 @@ def train(training_mode=True, pretrained=False, lr=0.0001, gamma=0.90, explorati
             f.write("Action Frequencies for Episode {}, Exploration = {:4f}, Tot Reward = {}\n".format(ep_num + 1, agent.exploration_rate, total_reward))
             f.write(json.dumps(action_freq) + "\n\n")
         
-        # if debug:
-        #     with open(f'loss-{run_id}.txt', 'a') as f:
-        #         f.write("loss: {}".format(loss))
+    
     
     if training_mode:
         save_checkpoint(agent, total_rewards, total_info, run_id)
