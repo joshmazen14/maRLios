@@ -1,0 +1,4 @@
+wandb/debug-cli.cameronwitz.log filter=lfs diff=lfs merge=lfs -text
+wandb/debug-internal.log filter=lfs diff=lfs merge=lfs -text
+wandb/debug.log filter=lfs diff=lfs merge=lfs -text
+wandb/latest-run filter=lfs diff=lfs merge=lfs -text
