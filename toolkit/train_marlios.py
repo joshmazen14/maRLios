@@ -216,7 +216,7 @@ def train(training_mode=True, pretrained=False, lr=0.0001, gamma=0.90, explorati
             avg_total_reward = np.average(total_rewards[-ep_per_stat:])
             std_dev_total_reward = np.std(total_rewards[-ep_per_stat:])
             wandb.log({"avg total reward" : avg_total_reward,
-                       "std dev total reward": std_dev_total_reward })
+                       "std dev total reward": std_dev_total_reward }, step = ep_num)
 
         losses = []
 
@@ -226,12 +226,9 @@ def train(training_mode=True, pretrained=False, lr=0.0001, gamma=0.90, explorati
                    "current lr": agent.lr,
                    "current exploration": agent.exploration_rate,
                    "flag acquired": info['flag_get'],
-                #    "game score": info['score'],
                    "time": time_taken,
                    "x_position": info['x_pos'],
-                #    "time remaining on clock": info["time"],
-                   "episode" : ep_num
-                   })
+                   }, step = ep_num)
 
         agent.decay_lr(lr_decay)
         agent.decay_exploration()
