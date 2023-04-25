@@ -228,12 +228,14 @@ def train(training_mode=True, pretrained=False, lr=0.0001, gamma=0.90, explorati
                    "flag acquired": info['flag_get'],
                 #    "game score": info['score'],
                    "time": time_taken,
+                   "x_position": info['x_pos'],
                 #    "time remaining on clock": info["time"],
                    "episode" : ep_num
                    })
 
         agent.decay_lr(lr_decay)
         agent.decay_exploration()
+        agent.subsample_actions()
         
 
         if training_mode and (ep_num % ep_per_stat) == 0 and ep_num != 0:
