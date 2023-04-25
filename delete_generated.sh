@@ -5,3 +5,5 @@ rm progress-*.txt
 rm total_reward-*.txt
 rm actions_chosen-*.txt
 rm loss-*.txt
+
+# wandb sync --clean   
