@@ -3,7 +3,6 @@ from __future__ import division
 from __future__ import print_function
 
 import torch
-# import torchvision
 import torch.nn as nn
 import random
 import numpy as np
