@@ -2,3 +2,4 @@ lib/*
 *MEM.pt
 *.txt
 *.pyc
+wandb/*
