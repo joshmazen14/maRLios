@@ -90,7 +90,7 @@ def train(
 
     wandb.init(
         # set the wandb project where this run will be logged
-        project="my-sensual-project",
+        project="my-awesome-project",
     
         # track hyperparameters and run metadata
         config={
@@ -143,9 +143,9 @@ def train(
     env.reset()
     total_rewards = []
     total_info = []
-    avg_losses = []
-    avg_rewards = []
-    avg_stdevs = []
+    avg_losses = [0]
+    avg_rewards = [0]
+    avg_stdevs = [0]
 
     losses = []
     if pretrained:
@@ -244,8 +244,10 @@ def train(
                    "flag acquired": info['flag_get'],
                    "time": time_taken,
                    "x_position": info['x_pos'],
-                   "avg_loss": 0 if not len(avg_losses) else avg_losses[-1],
-                   "max_time_per_ep": max_time_per_ep
+                   "avg_loss": avg_losses[-1],
+                   "max_time_per_ep": max_time_per_ep,
+                   "avg_total_rewards": avg_rewards[-1],
+                   "avg_std_dev": avg_stdevs[-1]
                    })
 
 
@@ -254,7 +256,7 @@ def train(
         agent.subsample_actions()
         
         # update the max time per episode every 1000 episodes
-        if ep_num % 2000 == 0 and agent.max_time_per_ep < 500:
+        if ep_num % 2000 == 0 and agent.max_time_per_ep < 500 and ep_num>0:
             agent.max_time_per_ep += 100
 
         if training_mode and (ep_num % ep_per_stat) == 0 and ep_num != 0:
