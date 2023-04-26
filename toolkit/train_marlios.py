@@ -86,7 +86,7 @@ def train(training_mode=True, pretrained=False, lr=0.0001, gamma=0.90, explorati
 
     wandb.init(
         # set the wandb project where this run will be logged
-        project="my-awesome-project",
+        project="my-sensual-project",
     
         # track hyperparameters and run metadata
         config={
@@ -198,7 +198,7 @@ def train(training_mode=True, pretrained=False, lr=0.0001, gamma=0.90, explorati
             if loss != None:
                 # agent.decay_exploration()
                 avg_loss_replay = torch.mean(loss).cpu().data.numpy().item(0)
-                wandb.log({"average replay loss": avg_loss_replay})
+                # wandb.log({"average replay loss": avg_loss_replay})
                 losses.append(avg_loss_replay)
             
             state = state_next
@@ -210,8 +210,8 @@ def train(training_mode=True, pretrained=False, lr=0.0001, gamma=0.90, explorati
         # Gather loss stats
         if len(losses):
             avg_losses.append(np.mean(losses))
-        if len(avg_losses):
-            wandb.log({"average episode loss": avg_losses[-1]})
+        # if len(avg_losses):
+        #     wandb.log({"average episode loss": avg_losses[-1]})
         # gather average reward per eg:100 episodes stat
         if len(total_rewards)%ep_per_stat == 0 and iteration > 0:
             avg_rewards.append(np.average(total_rewards[-ep_per_stat:]))
@@ -223,15 +223,15 @@ def train(training_mode=True, pretrained=False, lr=0.0001, gamma=0.90, explorati
         # plot the line charts:
         time_taken = time_total - info["time"]
         
-        # if len(avg_rewards):
-        #     ub = [i + j for i, j in zip(avg_rewards, avg_stdevs)]
-        #     lb = [i - j for i, j in zip(avg_rewards, avg_stdevs)]
-        #     wandb.log({"my_custom_id" : wandb.plot.line_series(
-        #                 xs=[i for i in range(0, ep_num, ep_per_stat)], 
-        #                 ys=[avg_rewards, ub, lb],
-        #                 keys=["Avg Total Rewards", "upper std", "lower std"],
-        #                 title="Avg Rewards per {} Episodes".format(ep_per_stat),
-        #                 xname="episode ({}'s)".format(ep_per_stat))})
+        if len(avg_rewards):
+            ub = [i + j for i, j in zip(avg_rewards, avg_stdevs)]
+            lb = [i - j for i, j in zip(avg_rewards, avg_stdevs)]
+            # wandb.log({"my_custom_id" : wandb.plot.line_series(
+            #             xs=[i for i in range(0, ep_num, ep_per_stat)], 
+            #             ys=[avg_rewards, ub, lb],
+            #             keys=["Avg Total Rewards", "upper std", "lower std"],
+            #             title="Avg Rewards per {} Episodes".format(ep_per_stat),
+            #             xname="episode ({}'s)".format(ep_per_stat))})
             
         wandb.log({"total reward" : total_reward, 
                    "current lr": agent.lr,
@@ -239,7 +239,7 @@ def train(training_mode=True, pretrained=False, lr=0.0001, gamma=0.90, explorati
                    "flag acquired": info['flag_get'],
                    "time": time_taken,
                    "x_position": info['x_pos'],
-                   "episode" : ep_num,
+                   "avg_loss": 0 if not len(avg_losses) else avg_losses[-1]
                    })
 
 
