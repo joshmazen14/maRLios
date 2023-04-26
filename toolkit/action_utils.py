@@ -39,7 +39,6 @@ def sample_actions(action_set, n_actions, add_sufficient=False):
 
     return action_vectors
 
-
 def vec_to_action(vec):
     '''
     vector is a combination of two actions 
@@ -93,6 +92,7 @@ def suffient_action_space(action_space):
 
     Returns Boolean. 
     '''
+    
     right_present = False
     a_present = False
     
