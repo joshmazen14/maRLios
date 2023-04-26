@@ -77,7 +77,7 @@ class DQNSolver(nn.Module):
 class DQNAgent:
 
     def __init__(self, action_space, max_memory_size, batch_size, gamma, lr, state_space,
-                 dropout, exploration_max, exploration_min, exploration_decay, double_dq, pretrained, run_id='', n_actions = 32, device=None):
+                 dropout, exploration_max, exploration_min, exploration_decay, double_dq, pretrained, run_id='', n_actions = 32, device=None, init_max_time=500):
 
         # Define DQN Layers
         self.state_space = state_space
@@ -112,9 +112,8 @@ class DQNAgent:
         self.optimizer = torch.optim.Adam(self.local_net.parameters(), lr=lr)
         self.copy = 5000  # Copy the local model weights into the target network every 5000 steps
         self.step = 0
+        self.max_time_per_ep = init_max_time
     
-    
-
         # Create memory
         self.max_memory_size = max_memory_size
         if self.pretrained:
