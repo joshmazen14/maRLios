@@ -2,3 +2,6 @@ lib/*
 *MEM.pt
 *.txt
 *.pyc
+*.pkl
+*.pt
+launch.json
