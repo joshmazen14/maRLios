@@ -83,7 +83,7 @@ class DQNSolver(nn.Module):
 class DQNAgent:
 
     def __init__(self, action_space, max_memory_size, batch_size, gamma, lr, state_space,
-                 dropout, exploration_max, exploration_min, exploration_decay, double_dq, pretrained, run_id='', n_actions = 32):
+                 dropout, exploration_max, exploration_min, exploration_decay, double_dq, pretrained, delay_decay=0, run_id='', n_actions = 32):
 
         # Define DQN Layers
         self.state_space = state_space
@@ -157,6 +157,7 @@ class DQNAgent:
         self.exploration_rate = exploration_max
         self.exploration_min = exploration_min
         self.exploration_decay = exploration_decay
+        self.delay_decay = delay_decay
         
 
     def subsample_actions(self, n_actions):
@@ -248,8 +249,8 @@ class DQNAgent:
 
         # self.cur_action_space = torch.from_numpy(self.subsample_actions(self.n_actions)).to(torch.float32).to(self.device)
         # I am disabling this here for my testing, but also think we should add it to the run loop for testing til we are sure it works, idk
-
-        self.exploration_rate *= self.exploration_decay
+        if (self.step > self.delay_decay):
+            self.exploration_rate *= self.exploration_decay
         
         # Makes sure that exploration rate is always at least 'exploration min'
         self.exploration_rate = max(self.exploration_rate, self.exploration_min)
