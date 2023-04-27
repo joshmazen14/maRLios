@@ -256,8 +256,8 @@ def train(
         agent.subsample_actions()
         
         # update the max time per episode every 1000 episodes
-        if ep_num % 2000 == 0 and agent.max_time_per_ep < 500 and ep_num>0:
-            agent.max_time_per_ep += 100
+        if ep_num % 1000 == 0 and agent.max_time_per_ep < 450 and ep_num>0:
+            agent.max_time_per_ep += 50
 
         if training_mode and (ep_num % ep_per_stat) == 0 and ep_num != 0:
             save_checkpoint(agent, total_rewards, total_info, run_id)
