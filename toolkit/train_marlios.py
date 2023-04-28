@@ -256,7 +256,7 @@ def train(
         agent.subsample_actions()
         
         # update the max time per episode every 1000 episodes
-        if ep_num % 1000 == 0 and agent.max_time_per_ep < 450 and ep_num>0:
+        if ep_num % 1000 == 0 and agent.max_time_per_ep < 450 and iteration>0:
             agent.max_time_per_ep += 50
 
         if training_mode and (ep_num % ep_per_stat) == 0 and ep_num != 0:
@@ -292,7 +292,7 @@ def show_state(env, ep=0, info=""):
     # display.display(plt.gcf())
     display(plt.gcf(), clear=True)
 
-def visualize(run_id, action_space, n_actions, lr=0.0001, exploration_min=0.02, ep_per_stat = 100, exploration_max = 0.1, mario_env='SuperMarioBros-1-1-v0',  num_episodes=1000, log_stats = False):
+def visualize(run_id, action_space, n_actions, lr=0.0001, exploration_min=0.02, ep_per_stat = 100, exploration_max = 0.1, mario_env='SuperMarioBros-1-1-v0',  num_episodes=1000, log_stats = False, randomness = True):
    
    
     fh = open(f'progress-{run_id}.txt', 'a')
@@ -303,7 +303,11 @@ def visualize(run_id, action_space, n_actions, lr=0.0001, exploration_min=0.02, 
     # observation_space = env.observation_space.shape # not using this anymore
 
     #todo: add agent params as a setting/create different agents in diff functions to run 
-    exploration_max = min(1, max(exploration_max, exploration_min))
+    if randomness:
+        exploration_max = min(1, max(exploration_max, exploration_min))
+    else:
+        exploration_max = 0
+        exploration_min = 0
 
     agent = DQNAgent(
                      state_space=env.observation_space.shape,

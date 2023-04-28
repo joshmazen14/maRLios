@@ -19,8 +19,10 @@ class DQNSolver(nn.Module):
             nn.AvgPool2d(kernel_size=3, stride=1),
             nn.LeakyReLU(),
             nn.Conv2d(64, 64, kernel_size=6, stride=4),
-            nn.BatchNorm2d(64),
+            nn.MaxPool2d(kernel_size=2, stride=1),
             nn.LeakyReLU(),
+            nn.Conv2d(64, 64, kernel_size=3, stride=1),
+            nn.LeakyReLU()
         )
         conv_out_size = self._get_conv_out(input_shape)
 
@@ -35,6 +37,8 @@ class DQNSolver(nn.Module):
         self.action_fc = nn.Sequential(
             nn.Linear(action_size, 32),
             nn.ReLU(),
+            nn.Linear(32, 32),
+            nn.ReLU()
         )
         
         # We take a vector of 5 being the initial action, and 5 being the second action for action size of 10
