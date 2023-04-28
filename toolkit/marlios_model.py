@@ -3,18 +3,11 @@ from __future__ import division
 from __future__ import print_function
 
 import torch
-# import torchvision
 import torch.nn as nn
 import random
-from nes_py.wrappers import JoypadSpace
-from gym_super_mario_bros import SuperMarioBrosEnv
-from tqdm import tqdm
 import numpy as np
 import pickle 
 import numpy as np
-import collections 
-import cv2
-import matplotlib.pyplot as plt
 import toolkit.action_utils 
 from torchvision import models
 
@@ -34,7 +27,6 @@ class DQNSolver(nn.Module):
             #nn.MaxPool2d(),
             nn.ReLU()
         )
-
         conv_out_size = self._get_conv_out(input_shape)
         # We take a vector of 5 being the initial action, and 5 being the second action for action size of 10
         self.actions_fc = nn.Sequential(
@@ -48,7 +40,7 @@ class DQNSolver(nn.Module):
             nn.Linear(512, 64), # added a new layer can play with the parameters
             nn.BatchNorm1d(64),
             nn.ReLU(),
-            nn.Linear(64, 1)
+            nn.Linear(32, 1)
         )
     
     def _get_conv_out(self, shape):
@@ -60,7 +52,9 @@ class DQNSolver(nn.Module):
         x - image being passed in as the state
         sampled_actions - np.array with n x 8 
         '''
-        conv_out = self.conv(x).view(x.size()[0], -1)
+        big_conv_out = self.conv(x).view(x.size()[0], -1)
+        conv_out = self.conv_to_32(big_conv_out)
+
         batched_conv_out = conv_out.reshape(conv_out.shape[0], 1, conv_out.shape[-1]).repeat(1, sampled_actions.shape[-2], 1)
 
         batched_actions = self.actions_fc(sampled_actions)
@@ -78,26 +72,30 @@ class DQNSolver(nn.Module):
         out =  torch.flatten(out, start_dim=1)
 
         return out
+
     
 
 class DQNAgent:
 
     def __init__(self, action_space, max_memory_size, batch_size, gamma, lr, state_space,
-                 dropout, exploration_max, exploration_min, exploration_decay, double_dq, pretrained, delay_decay=0, run_id='', n_actions = 32):
+                 dropout, exploration_max, exploration_min, exploration_decay, double_dq, pretrained, run_id='', n_actions = 32, device=None, init_max_time=500):
 
         # Define DQN Layers
         self.state_space = state_space
 
         self.action_space = action_space # this will be a set of actions ie: a subset of TWO_ACTIONS in constants.py
         self.n_actions = n_actions # initial number of actions to sample
-
-        self.device ='cpu'
-        if torch.cuda.is_available():
-            self.device = 'cuda'
-        elif torch.backends.mps.is_available():
-            self.device = 'mps'
+        if device == None:
+            self.device ='cpu'
+            if torch.cuda.is_available():
+                self.device = 'cuda'
+            elif torch.backends.mps.is_available():
+                self.device = 'mps'
+        else:
+            self.device = device
         
-        self.cur_action_space = torch.from_numpy(self.subsample_actions(self.n_actions)).to(torch.float32).to(self.device).unsqueeze(0) # make it include a batch dimension by defautl
+
+        self.subsample_actions()
 
         self.double_dq = double_dq
         self.pretrained = pretrained
@@ -110,33 +108,21 @@ class DQNAgent:
         if self.pretrained:
             self.local_net.load_state_dict(torch.load(f"dq1-{run_id}.pt", map_location=torch.device(self.device)))
             self.target_net.load_state_dict(torch.load(f"dq2-{run_id}.pt", map_location=torch.device(self.device)))
-                
+        
+        self.lr = lr
         self.optimizer = torch.optim.Adam(self.local_net.parameters(), lr=lr)
         self.copy = 5000  # Copy the local model weights into the target network every 5000 steps
         self.step = 0
+        self.max_time_per_ep = init_max_time
     
-    
-
         # Create memory
         self.max_memory_size = max_memory_size
         if self.pretrained:
-            # self.STATE_MEM = torch.load(f"STATE_MEM-{run_id}.pt")
-            # self.ACTION_MEM = torch.load(f"ACTION_MEM-{run_id}.pt")
-            # self.REWARD_MEM = torch.load(f"REWARD_MEM-{run_id}.pt")
-            # self.STATE2_MEM = torch.load(f"STATE2_MEM-{run_id}.pt")
-            # self.DONE_MEM = torch.load(f"DONE_MEM-{run_id}.pt")
-            # self.SPACE_MEM = torch.load(f"SPACE_MEM-{run_id}.pt")
             with open(f"ending_position-{run_id}.pkl", 'rb') as f:
                 self.ending_position = pickle.load(f)
             with open(f"num_in_queue-{run_id}.pkl", 'rb') as f:
                 self.num_in_queue = pickle.load(f)
         else:
-            # self.STATE_MEM = torch.zeros(max_memory_size, *self.state_space)
-            # self.ACTION_MEM = torch.zeros(max_memory_size, 1) # this needs to be a matrix of the actual action taken
-            # self.REWARD_MEM = torch.zeros(max_memory_size, 1)
-            # self.STATE2_MEM = torch.zeros(max_memory_size, *self.state_space)
-            # self.DONE_MEM = torch.zeros(max_memory_size, 1)
-            # self.SPACE_MEM = torch.zeros(max_memory_size, self.n_actions, 10)
             self.ending_position = 0
             self.num_in_queue = 0
 
@@ -160,11 +146,13 @@ class DQNAgent:
         self.delay_decay = delay_decay
         
 
-    def subsample_actions(self, n_actions):
+    def subsample_actions(self):
         '''
-        Returns numpy array 
+        Changes curaction space to be a random sample of what it was
         '''
-        return toolkit.action_utils.sample_actions(self.action_space, n_actions)
+
+        self.cur_action_space = torch.from_numpy(toolkit.action_utils.sample_actions(self.action_space, self.n_actions)).to(torch.float32).to(self.device).unsqueeze(0)
+    
 
 
     def remember(self, state, action, reward, state2, done):
@@ -197,8 +185,7 @@ class DQNAgent:
         # Epsilon-greedy action
         
         # increment step
-        if self.double_dq:
-            self.step += 1
+        self.step += 1
 
         if random.random() < self.exploration_rate:  
             rand_ind = random.randrange(0, self.cur_action_space.shape[1])
@@ -216,14 +203,26 @@ class DQNAgent:
         # Copy local net weights into target net
         
         self.target_net.load_state_dict(self.local_net.state_dict())
-    
+
+    def decay_exploration(self):
+        self.exploration_rate *= self.exploration_decay
+        
+        # Makes sure that exploration rate is always at least 'exploration min'
+        self.exploration_rate = max(self.exploration_rate, self.exploration_min)
+
+    def decay_lr(self, lr_decay):
+        self.lr *= lr_decay
+        self.lr = max(self.lr, 0.000000001)
+        for g in self.optimizer.param_groups:
+            g['lr'] = self.lr
+
     def experience_replay(self, debug=False):
         
         if self.step % self.copy == 0:
             self.copy_model()
 
         if self.memory_sample_size > self.num_in_queue:
-            return
+            return None
 
         STATE, ACTION, REWARD, STATE2, DONE, SPACE = self.recall()
         STATE = STATE.to(self.device)
@@ -255,4 +254,10 @@ class DQNAgent:
         # Makes sure that exploration rate is always at least 'exploration min'
         self.exploration_rate = max(self.exploration_rate, self.exploration_min)
 
+        # self.decay_exploration()
+
+        if debug:
+            return loss.float()
+        
         return target, current, loss
+        # decay lr

@@ -52,8 +52,6 @@ ACTION_TO_INDEX = {
     ('right',): 23
 }
 
-
-
 BUTTONS = ['A',
             'B', 
             'down', 
@@ -790,8 +788,6 @@ SUFFICIENT_ACTIONS = [
  [['right'], ['A', 'down']],
  [['right'], ['A', 'down', 'right']],
  [['right'], ['A', 'right']]]
-
-
 
 SIMPLE_MOVEMENT = [
     [['NOOP'], ['NOOP']],
