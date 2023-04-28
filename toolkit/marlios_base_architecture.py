@@ -14,14 +14,15 @@ class DQNSolver(nn.Module):
 
     def __init__(self, input_shape):
         super(DQNSolver, self).__init__()
-        self.action_size = 10
         self.conv = nn.Sequential(
             nn.Conv2d(input_shape[0], 64, kernel_size=8, stride=4),
             nn.AvgPool2d(kernel_size=3, stride=1),
             nn.LeakyReLU(),
             nn.Conv2d(64, 64, kernel_size=6, stride=4),
-            nn.BatchNorm2d(64),
+            nn.MaxPool2d(kernel_size=2, stride=1),
             nn.LeakyReLU(),
+            nn.Conv2d(64, 64, kernel_size=3, stride=1),
+            nn.LeakyReLU()
         )
         conv_out_size = self._get_conv_out(input_shape)
 
@@ -36,15 +37,11 @@ class DQNSolver(nn.Module):
         self.action_fc = nn.Sequential(
             nn.Linear(action_size, 32),
             nn.ReLU(),
+            nn.Linear(32, 32),
+            nn.ReLU()
         )
         
         # We take a vector of 5 being the initial action, and 5 being the second action for action size of 10
-        self.actions_fc = nn.Sequential(
-            # nn.Linear(self.action_size, 100),
-            nn.Linear(self.action_size, 40),
-            nn.LeakyReLU(),
-            # nn.ReLU()
-        )
         self.fc = nn.Sequential(
             nn.Linear(64, 64),
             nn.ReLU(),
@@ -196,7 +193,6 @@ class DQNAgent:
             # Local net is used for the policy
 
             # Updated for generalization:
-        self.cur_action_space = torch.from_numpy(self.subsample_actions(self.n_actions, self.sample_suff_actions)).to(torch.float32).to(self.device).unsqueeze(0) # make it include a batch dimension by defautl
         results = self.local_net(state.to(self.device), self.cur_action_space).cpu()
         return torch.argmax(results, dim=1)
         # action = torch.tensor(self.cur_action_space[act_index])
@@ -248,7 +244,7 @@ class DQNAgent:
         loss.backward() # Compute gradients
         self.optimizer.step() # Backpropagate error
 
-        # self.cur_action_space = torch.from_numpy(self.subsample_actions(self.n_actions, self.sample_suff_actions)).to(torch.float32).to(self.device).unsqueeze(0) # make it include a batch dimension by defautl
+        # self.cur_action_space = torch.from_numpy(self.subsample_actions(self.n_actions)).to(torch.float32).to(self.device)
         # I am disabling this here for my testing, but also think we should add it to the run loop for testing til we are sure it works, idk
         # decay lr
 
