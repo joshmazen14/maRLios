@@ -298,7 +298,7 @@ def train(
             agent.max_time_per_ep += 50
 
         if training_mode and (ep_num % ep_per_stat) == 0 and ep_num != 0:
-            save_checkpoint(agent, total_rewards, total_info, run_id)
+            save_checkpoint(agent, total_rewards, total_info, avg_losses, run_id)
         
         with open(f'actions_chosen-{run_id}.txt', 'a') as f:
             f.write("Action Frequencies for Episode {}, Exploration = {:4f}, Tot Reward = {}\n".format(ep_num + 1, agent.exploration_rate, total_reward))

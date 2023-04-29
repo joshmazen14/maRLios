@@ -23,9 +23,9 @@ class DQNSolver(nn.Module):
         super(DQNSolver, self).__init__()
         self.action_size = 10
         self.conv = nn.Sequential(
-            nn.Conv2d(input_shape[0], 64, kernel_size=8, stride=4),
+            nn.Conv2d(input_shape[0], 32, kernel_size=8, stride=4),
             nn.LeakyReLU(),
-            nn.Conv2d(64, 64, kernel_size=4, stride=2),
+            nn.Conv2d(32, 64, kernel_size=4, stride=2),
             nn.LeakyReLU(),
             nn.Conv2d(64, 64, kernel_size=3, stride=1),
             nn.LeakyReLU()
@@ -35,31 +35,40 @@ class DQNSolver(nn.Module):
 
         # takes the output of the convolutions and gets vector to size 32
         self.conv_to_32 = nn.Sequential(
-            nn.Linear(conv_out_size, 32),
+            nn.Linear(conv_out_size, 64),
             nn.ReLU()
         )
 
         # We take a vector of 5 being the initial action, and 5 being the second action for action size of 10
         self.actions_fc = nn.Sequential(
             # nn.Linear(self.action_size, 100),
-            nn.Linear(self.action_size, 40),
+            nn.Linear(self.action_size, 32),
             nn.LeakyReLU(),
             # nn.ReLU()
         )
         self.fc = nn.Sequential(
             # nn.Linear(conv_out_size + 100, 512),
-            nn.Linear(32 + 40, 100),
-            nn.BatchNorm1d(100),
-            nn.ReLU(),
-            nn.Linear(100, 32), # added a new layer can play with the parameters
+            nn.Linear(64 + 32, 128),
+            nn.BatchNorm1d(128),
+            nn.LeakyReLU(),
+            nn.Linear(128, 32), # added a new layer can play with the parameters
             nn.BatchNorm1d(32),
             # nn.Linear(512, 64), # added a new layer can play with the parameters
             # nn.BatchNorm1d(64),
-            nn.ReLU(),
+            nn.LeakyReLU(),
             # nn.Linear(64, 1)
             nn.Linear(32, 1)
         )
+
+        # Apply weight initialization
+        self.apply(self.init_weights)
     
+    def init_weights(self, m):
+        if isinstance(m, nn.Linear) or isinstance(m, nn.Conv2d):
+            nn.init.xavier_uniform_(m.weight)
+            if m.bias is not None:
+                nn.init.zeros_(m.bias)
+
     def _get_conv_out(self, shape):
         o = self.conv(torch.zeros(1, *shape))
         return int(np.prod(o.size()))
