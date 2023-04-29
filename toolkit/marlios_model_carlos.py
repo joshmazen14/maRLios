@@ -6,16 +6,16 @@ import torch
 # import torchvision
 import torch.nn as nn
 import random
-from nes_py.wrappers import JoypadSpace
-from gym_super_mario_bros import SuperMarioBrosEnv
-from tqdm import tqdm
+# from nes_py.wrappers import JoypadSpace
+# from gym_super_mario_bros import SuperMarioBrosEnv
+# from tqdm import tqdm
 import numpy as np
 import pickle 
 import numpy as np
-import collections 
-import cv2
-import matplotlib.pyplot as plt
-import toolkit.action_utils 
+# import collections 
+# import cv2
+# import matplotlib.pyplot as plt
+import toolkit.action_utils_carlos as action_utils
 
 class DQNSolver(nn.Module):
 
@@ -32,6 +32,13 @@ class DQNSolver(nn.Module):
         )
 
         conv_out_size = self._get_conv_out(input_shape)
+
+        # takes the output of the convolutions and gets vector to size 32
+        self.conv_to_32 = nn.Sequential(
+            nn.Linear(conv_out_size, 32),
+            nn.ReLU()
+        )
+
         # We take a vector of 5 being the initial action, and 5 being the second action for action size of 10
         self.actions_fc = nn.Sequential(
             # nn.Linear(self.action_size, 100),
@@ -41,10 +48,10 @@ class DQNSolver(nn.Module):
         )
         self.fc = nn.Sequential(
             # nn.Linear(conv_out_size + 100, 512),
-            nn.Linear(conv_out_size + 40, 512),
-            nn.BatchNorm1d(512),
+            nn.Linear(32 + 40, 100),
+            nn.BatchNorm1d(100),
             nn.ReLU(),
-            nn.Linear(512, 32), # added a new layer can play with the parameters
+            nn.Linear(100, 32), # added a new layer can play with the parameters
             nn.BatchNorm1d(32),
             # nn.Linear(512, 64), # added a new layer can play with the parameters
             # nn.BatchNorm1d(64),
@@ -62,12 +69,13 @@ class DQNSolver(nn.Module):
         x - image being passed in as the state
         sampled_actions - np.array with n x 8 
         '''
-        conv_out = self.conv(x).view(x.size()[0], -1)
+        big_conv_out = self.conv(x).view(x.size()[0], -1)
+        conv_out = self.conv_to_32(big_conv_out)
         batched_conv_out = conv_out.reshape(conv_out.shape[0], 1, conv_out.shape[-1]).repeat(1, sampled_actions.shape[-2], 1)
 
-        batched_actions = self.actions_fc(sampled_actions)
+        latent_actions = self.actions_fc(sampled_actions)
         
-        batched_state_actions = torch.cat((batched_conv_out, batched_actions), dim=2)
+        batched_state_actions = torch.cat((batched_conv_out, latent_actions), dim=2)
         # out =  torch.flatten(self.fc(batched_state_actions), start_dim=1)
 
         # Reshape input to 2D tensor before passing through fc layers
@@ -85,7 +93,8 @@ class DQNSolver(nn.Module):
 class DQNAgent:
 
     def __init__(self, action_space, max_memory_size, batch_size, gamma, lr, state_space,
-                 dropout, exploration_max, exploration_min, exploration_decay, double_dq, pretrained, run_id='', n_actions = 32,  sample_actions =True):
+                 dropout, exploration_max, exploration_min, exploration_decay, double_dq, pretrained,
+                 run_id='', n_actions=32,  sample_actions=True, device=None, init_max_time=500):
 
         # Define DQN Layers
         self.state_space = state_space
@@ -94,13 +103,17 @@ class DQNAgent:
         self.n_actions = n_actions # initial number of actions to sample
         self.sample_suff_actions = sample_actions # whether to sample the sufficient actions or not
 
-        self.device ='cpu'
-        if torch.cuda.is_available():
-            self.device = 'cuda'
-        elif torch.backends.mps.is_available():
-            self.device = 'mps'
+        if device == None:
+            self.device = 'cpu'
+            if torch.cuda.is_available():
+                self.device = 'cuda'
+            elif torch.backends.mps.is_available():
+                self.device = 'mps'
+        else:
+            self.device = device
         
-        self.cur_action_space = torch.from_numpy(self.subsample_actions(self.n_actions, sample_actions)).to(torch.float32).to(self.device).unsqueeze(0) # make it include a batch dimension by defautl
+        # self.cur_action_space = torch.from_numpy(self.subsample_actions(self.n_actions, sample_actions)).to(torch.float32).to(self.device).unsqueeze(0) # make it include a batch dimension by defautl
+        self.subsample_actions()
 
         self.double_dq = double_dq
         self.pretrained = pretrained
@@ -113,10 +126,12 @@ class DQNAgent:
         if self.pretrained:
             self.local_net.load_state_dict(torch.load(f"dq1-{run_id}.pt", map_location=torch.device(self.device)))
             self.target_net.load_state_dict(torch.load(f"dq2-{run_id}.pt", map_location=torch.device(self.device)))
-                
+
+        self.lr = lr
         self.optimizer = torch.optim.Adam(self.local_net.parameters(), lr=lr)
         self.copy = 5000  # Copy the local model weights into the target network every 5000 steps
         self.step = 0
+        self.max_time_per_ep = init_max_time
     
     
 
@@ -162,11 +177,12 @@ class DQNAgent:
         self.exploration_decay = exploration_decay
         
 
-    def subsample_actions(self, n_actions, sample_suff_actions):
+    def subsample_actions(self):
         '''
-        Returns numpy array 
+        Changes curaction space to be a random sample of what it was
         '''
-        return toolkit.action_utils.sample_actions(self.action_space, n_actions, sample_suff_actions)
+        self.cur_action_space = torch.from_numpy(action_utils.sample_actions(
+            self.action_space, self.n_actions, self.sample_suff_actions)).to(torch.float32).to(self.device).unsqueeze(0)
 
 
     def remember(self, state, action, reward, state2, done):
@@ -210,7 +226,8 @@ class DQNAgent:
             # Local net is used for the policy
 
             # Updated for generalization:
-        self.cur_action_space = torch.from_numpy(self.subsample_actions(self.n_actions, self.sample_suff_actions)).to(torch.float32).to(self.device).unsqueeze(0) # make it include a batch dimension by defautl
+
+        self.subsample_actions() # Maybe change this to sample on each episode instead of each step
         results = self.local_net(state.to(self.device), self.cur_action_space).cpu()
         return torch.argmax(results, dim=1)
         # action = torch.tensor(self.cur_action_space[act_index])
@@ -219,6 +236,18 @@ class DQNAgent:
         # Copy local net weights into target net
         
         self.target_net.load_state_dict(self.local_net.state_dict())
+
+    def decay_exploration(self):
+        self.exploration_rate *= self.exploration_decay
+        
+        # Makes sure that exploration rate is always at least 'exploration min'
+        self.exploration_rate = max(self.exploration_rate, self.exploration_min)
+
+    def decay_lr(self, lr_decay):
+        self.lr *= lr_decay
+        self.lr = max(self.lr, 0.000000001)
+        for g in self.optimizer.param_groups:
+            g['lr'] = self.lr
     
     def experience_replay(self, debug=False):
         
@@ -226,7 +255,7 @@ class DQNAgent:
             self.copy_model()
 
         if self.memory_sample_size > self.num_in_queue:
-            return
+            return None
 
         STATE, ACTION, REWARD, STATE2, DONE, SPACE = self.recall()
         STATE = STATE.to(self.device)
@@ -250,12 +279,6 @@ class DQNAgent:
         loss.backward() # Compute gradients
         self.optimizer.step() # Backpropagate error
 
-        # self.cur_action_space = torch.from_numpy(self.subsample_actions(self.n_actions, self.sample_suff_actions)).to(torch.float32).to(self.device).unsqueeze(0) # make it include a batch dimension by defautl
-        # I am disabling this here for my testing, but also think we should add it to the run loop for testing til we are sure it works, idk
+        # self.decay_exploration()
 
-        self.exploration_rate *= self.exploration_decay
-        
-        # Makes sure that exploration rate is always at least 'exploration min'
-        self.exploration_rate = max(self.exploration_rate, self.exploration_min)
-
-        return target, current, loss
+        return loss.float()
