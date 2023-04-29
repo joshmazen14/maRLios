@@ -254,9 +254,9 @@ def train(
         # if len(avg_losses):
         #     wandb.log({"average episode loss": avg_losses[-1]})
         # gather average reward per eg:100 episodes stat
-        if len(total_rewards)%ep_per_stat == 0 and iteration > 0:
-            avg_rewards.append(np.average(total_rewards[-ep_per_stat:]))
-            avg_stdevs.append(np.std(total_rewards[-ep_per_stat:]))   
+        # if len(total_rewards)%ep_per_stat == 0 and iteration > 0:
+        avg_rewards.append(np.average(total_rewards[-ep_per_stat:]))
+        avg_stdevs.append(np.std(total_rewards[-ep_per_stat:]))   
        
         losses = []
 
