@@ -124,26 +124,6 @@ def train(
     time_total = 400 #seconds
     time_taken = 0 #seconds
 
-    wandb.init(
-        # set the wandb project where this run will be logged
-        project="my-awesome-project",
-    
-        # track hyperparameters and run metadata
-        config={
-        "name": name or run_id,
-        "run_id": run_id,
-        "lr": lr,
-        "lr_decay": lr_decay,
-        "exploration_decay": exploration_decay,
-        "n_actions": n_actions,
-        "gamma": gamma,
-        "episodes": num_episodes,
-        "ep_per_stat": ep_per_stat
-        }
-    )
-
-    
-
     # fh = open(f'progress-{run_id}.txt', 'a') # suppressing this for local runs
     env = gym.make(mario_env)
     env = make_env(env, ACTION_SPACE)
@@ -170,7 +150,25 @@ def train(
                      init_max_time=max_time_per_ep,
                      sample_actions=sample_actions
                      )
+
+    wandb.init(
+        # set the wandb project where this run will be logged
+        project="my-awesome-project",
     
+        # track hyperparameters and run metadata
+        config={
+            "name": name or run_id,
+            "run_id": run_id,
+            "model_architecture": str(agent.local_net),
+            "lr": lr,
+            "lr_decay": lr_decay,
+            "exploration_decay": exploration_decay,
+            "n_actions": n_actions,
+            "gamma": gamma,
+            "episodes": num_episodes,
+            "ep_per_stat": ep_per_stat
+        }
+    )    
 
     # see if anyone can get this to work, i think it doesn't work on mps
     if device != 'mps':
