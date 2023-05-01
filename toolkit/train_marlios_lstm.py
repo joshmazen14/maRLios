@@ -17,7 +17,7 @@ import datetime
 import json
 from toolkit.gym_env import *
 from toolkit.action_utils import *
-from toolkit.marlios_model import *
+from toolkit.marlios_lstm import *
 from toolkit.constants import *
 import wandb
 
@@ -79,7 +79,7 @@ def train(
         training_mode=True, pretrained=False, lr=0.0001, gamma=0.90, exploration_decay=0.995,
         exploration_min=0.02, ep_per_stat = 100, exploration_max = 1, 
         lr_decay = 0.99, mario_env='SuperMarioBros-1-1-v0', action_space=TWO_ACTIONS_SET,
-        num_episodes=1000, run_id=None, n_actions=20, debug = True, name=None, max_time_per_ep = 500, device=None
+        num_episodes=1000, run_id=None, n_actions=20, debug = True, name=None, max_time_per_ep = 500, device=None, log=True
     ):
     
 
@@ -87,24 +87,24 @@ def train(
     # from looking at the model, time starts at 400
     time_total = 400 #seconds
     time_taken = 0 #seconds
-
-    wandb.init(
-        # set the wandb project where this run will be logged
-        project="my-awesome-project",
-    
-        # track hyperparameters and run metadata
-        config={
-        "name": name or run_id,
-        "run_id": run_id,
-        "lr": lr,
-        "lr_decay": lr_decay,
-        "exploration_decay": exploration_decay,
-        "n_actions": n_actions,
-        "gamma": gamma,
-        "episodes": num_episodes,
-        "ep_per_stat": ep_per_stat
-        }
-    )
+    if log:
+        wandb.init(
+            # set the wandb project where this run will be logged
+            project="my-awesome-project",
+        
+            # track hyperparameters and run metadata
+            config={
+            "name": name or run_id,
+            "run_id": run_id,
+            "lr": lr,
+            "lr_decay": lr_decay,
+            "exploration_decay": exploration_decay,
+            "n_actions": n_actions,
+            "gamma": gamma,
+            "episodes": num_episodes,
+            "ep_per_stat": ep_per_stat
+            }
+        )
 
     
 
@@ -136,7 +136,7 @@ def train(
     
 
     # see if anyone can get this to work, i think it doesn't work on mps
-    if device != 'mps':
+    if device != 'mps' and log:
         wandb.watch(agent.local_net, log_freq=100, log='all')
 
     # num_episodes = 10
@@ -163,12 +163,11 @@ def train(
         steps = 0
 
         action_freq = {}
-        while True:
-            
-            # if steps%100 == 0 and steps>0:
-            #     agent.decay_exploration()
 
-            two_actions_index = agent.act(state)
+        prev_hidden_state = None
+        while True:
+            # lstm new
+            two_actions_index, hidden = agent.act(state, prev_hidden_state)
             two_actions_vector = agent.cur_action_space[0, two_actions_index[0]]
             two_actions = vec_to_action(two_actions_vector.cpu()) # tuple of actions
 
@@ -197,7 +196,10 @@ def train(
             terminal = torch.tensor([int(terminal)]).unsqueeze(0)
             time_taken = time_total - info["time"]
         
-            agent.remember(state, two_actions_index, reward, state_next, terminal)
+            agent.remember(state, two_actions_index, reward, state_next, terminal, hidden)
+            # lstm new
+            prev_hidden_state = hidden
+
             loss = agent.experience_replay(debug=debug)
             agent.subsample_actions() # change up action space
 
@@ -238,18 +240,18 @@ def train(
             #             keys=["Avg Total Rewards", "upper std", "lower std"],
             #             title="Avg Rewards per {} Episodes".format(ep_per_stat),
             #             xname="episode ({}'s)".format(ep_per_stat))})
-            
-        wandb.log({"total reward" : total_reward, 
-                   "current lr": agent.lr,
-                   "current exploration": agent.exploration_rate,
-                   "flag acquired": info['flag_get'],
-                   "time": time_taken,
-                   "x_position": info['x_pos'],
-                   "avg_loss": avg_losses[-1],
-                   "max_time_per_ep": max_time_per_ep,
-                   "avg_total_rewards": avg_rewards[-1],
-                   "avg_std_dev": avg_stdevs[-1]
-                   })
+        if log:
+            wandb.log({"total reward" : total_reward, 
+                    "current lr": agent.lr,
+                    "current exploration": agent.exploration_rate,
+                    "flag acquired": info['flag_get'],
+                    "time": time_taken,
+                    "x_position": info['x_pos'],
+                    "avg_loss": avg_losses[-1],
+                    "max_time_per_ep": max_time_per_ep,
+                    "avg_total_rewards": avg_rewards[-1],
+                    "avg_std_dev": avg_stdevs[-1]
+                    })
 
 
         agent.decay_lr(lr_decay)
@@ -277,8 +279,8 @@ def train(
     
     if num_episodes > ep_per_stat:
         plot_rewards(ep_per_stat=ep_per_stat, total_rewards=total_rewards)
-
-    wandb.finish()
+    if log:
+        wandb.finish()
 
 
 
