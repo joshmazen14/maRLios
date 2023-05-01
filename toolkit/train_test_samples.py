@@ -579,3 +579,115 @@ TEST_SET = [
 	 [['right'], ['B', 'down', 'right']] ,
 	 [['right'], ['down', 'right']] 
 ]
+
+TRAIN_SET_SUFFICIENT_JUMP_SET =[
+    [['A', 'B', 'right'], ['A', 'B', 'right']],
+	[['A', 'B', 'right'], ['A', 'B', 'down', 'right']],
+	[['A', 'B'], ['A', 'down', 'right']],
+	[['A', 'right'], ['A', 'B', 'down', 'right']],
+	[['A', 'B', 'down'], ['A', 'down', 'right']],
+	[['A', 'right'], ['A', 'down', 'right']],
+	[['A', 'right'], ['A', 'right']],
+	[['A', 'down', 'right'], ['A', 'B', 'down']],
+	[['A', 'B', 'down', 'right'], ['A', 'down']],
+	[['A', 'B', 'down', 'right'], ['A', 'B', 'down', 'right']],
+	[['A', 'down', 'right'], ['A']],
+	[['A', 'right'], ['A', 'B']],
+	[['A', 'down', 'right'], ['A', 'B', 'right']],
+	[['A', 'B'], ['A', 'B', 'down', 'right']],
+	[['A', 'down', 'right'], ['A', 'B', 'down', 'right']],
+	[['A'], ['A', 'down', 'right']],
+	[['A', 'right'], ['A', 'down']],
+	[['A'], ['A', 'B', 'down', 'right']],
+	[['A', 'B', 'down', 'right'], ['A', 'down', 'right']],
+	[['A', 'down'], ['A', 'down', 'right']],
+	[['A', 'B', 'right'], ['A', 'right']],
+	[['A', 'down', 'right'], ['A', 'right']],
+	[['A', 'right'], ['A']],
+	[['A', 'right'], ['A', 'B', 'down']],
+	[['A', 'down'], ['A', 'B', 'down', 'right']],
+	[['A', 'B', 'right'], ['A', 'down']],
+	[['A', 'B', 'right'], ['A', 'down', 'right']],
+	[['A'], ['A', 'B', 'right']],
+	[['A', 'B', 'down'], ['A', 'right']],
+	[['A', 'down', 'right'], ['A', 'down']],
+	[['A', 'B'], ['A', 'right']],
+	[['A', 'B', 'right'], ['A']],
+	[['A', 'B', 'down', 'right'], ['A']]
+]
+
+VALIDATION_SET_SUFFICIENT_JUMP_SET = [
+    [['A'], ['A', 'right']],
+	[['A', 'B', 'down', 'right'], ['A', 'B', 'right']],
+	[['A', 'down', 'right'], ['A', 'B']],
+	[['A', 'B', 'down'], ['A', 'B', 'down', 'right']],
+	[['A', 'B', 'down', 'right'], ['A', 'B', 'down']],
+	[['A', 'B', 'down'], ['A', 'B', 'right']],
+	[['A', 'B', 'down', 'right'], ['A', 'right']],
+	[['A', 'down'], ['A', 'B', 'right']]
+]
+
+TEST_SET_SUFFICIENT_JUMP_SET = [
+    [['A', 'B', 'right'], ['A', 'B', 'down']],
+	[['A', 'B', 'down', 'right'], ['A', 'B']],
+	[['A', 'right'], ['A', 'B', 'right']],
+	[['A', 'B'], ['A', 'B', 'right']],
+	[['A', 'down'], ['A', 'right']],
+	[['A', 'down', 'right'], ['A', 'down', 'right']],
+	[['A', 'B', 'right'], ['A', 'B']]
+]
+
+TRAIN_SET_SUFFICIENT_RIGHT_SET = [
+    [['A', 'B', 'down', 'right'], ['B', 'right']],
+	[['down', 'right'], ['A', 'down', 'right']],
+	[['A', 'down', 'right'], ['B', 'right']],
+	[['B', 'down', 'right'], ['A', 'right']],
+	[['right'], ['A', 'B', 'right']],
+	[['A', 'down', 'right'], ['A', 'B', 'right']],
+	[['right'], ['A', 'down', 'right']],
+	[['A', 'down', 'right'], ['A', 'B', 'down', 'right']],
+	[['A', 'B', 'down', 'right'], ['A', 'B', 'right']],
+	[['A', 'B', 'down', 'right'], ['A', 'down', 'right']],
+	[['B', 'down', 'right'], ['A', 'down', 'right']],
+	[['A', 'down', 'right'], ['A', 'right']],
+	[['A', 'B', 'down', 'right'], ['right']],
+	[['A', 'down', 'right'], ['down', 'right']],
+	[['A', 'down', 'right'], ['A', 'down', 'right']],
+	[['A', 'B', 'right'], ['A', 'down', 'right']],
+	[['down', 'right'], ['A', 'right']],
+	[['B', 'down', 'right'], ['A', 'B', 'right']],
+	[['B', 'right'], ['A', 'right']],
+	[['B', 'right'], ['A', 'B', 'right']],
+	[['A', 'B', 'right'], ['A', 'B', 'right']],
+	[['B', 'right'], ['A', 'down', 'right']],
+	[['A', 'B', 'right'], ['A', 'right']],
+	[['right'], ['A', 'B', 'down', 'right']],
+	[['A', 'B', 'down', 'right'], ['A', 'right']],
+	[['A', 'down', 'right'], ['right']],
+	[['right'], ['A', 'right']],
+	[['A', 'right'], ['B', 'down', 'right']],
+	[['A', 'right'], ['right']],
+	[['A', 'B', 'right'], ['B', 'down', 'right']],
+	[['A', 'right'], ['down', 'right']],
+	[['A', 'right'], ['A', 'right']]
+]
+
+VALIDATION_SET_SUFFICIENT_RIGHT_SET = [
+    [['A', 'right'], ['A', 'B', 'down', 'right']],
+	[['B', 'down', 'right'], ['A', 'B', 'down', 'right']],
+	[['A', 'B', 'right'], ['down', 'right']],
+	[['A', 'right'], ['A', 'B', 'right']],
+	[['A', 'B', 'down', 'right'], ['A', 'B', 'down', 'right']],
+	[['B', 'right'], ['A', 'B', 'down', 'right']],
+    [['A', 'B', 'down', 'right'], ['B', 'down', 'right']]
+]
+
+TEST_SET_SUFFICIENT_RIGHT_SET = [
+    [['A', 'B', 'down', 'right'], ['down', 'right']],
+	[['A', 'down', 'right'], ['B', 'down', 'right']],
+	[['A', 'B', 'right'], ['right']],
+	[['A', 'right'], ['A', 'down', 'right']],
+	[['A', 'right'], ['B', 'right']],
+	[['down', 'right'], ['A', 'B', 'down', 'right']],
+	[['A', 'B', 'right'], ['A', 'B', 'down', 'right']],
+]

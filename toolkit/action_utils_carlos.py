@@ -1,7 +1,12 @@
 import numpy as np
 import random
 from toolkit.constants_carlos import BUTTONS, ACTION_SPACE, BUTTON_MAP, SUFFICIENT_ACTIONS, RIGHT_SUFFICIENT_ACTIONS
+from toolkit.train_test_samples import *
+# TRAIN_SET_SUFFICIENT_JUMP_SET, TRAIN_SET_SUFFICIENT_RIGHT_SET, TEST_SET_SUFFICIENT_JUMP_SET, TEST_SET_SUFFICIENT_RIGHT_SET, VALIDATION_SET_SUFFICIENT_JUMP_SET, VALIDATION_SET_SUFFICIENT_RIGHT_SET
 
+TRAIN = 1
+VALIDATION = 2
+TEST = 3
 
 '''
 PRE: action set has been filtered to not include the holdout actions
@@ -9,7 +14,7 @@ Returns: an array of action vector representations to feed into our fc network
 '''
 
 
-def sample_actions(action_set, n_actions, add_sufficient=False):
+def sample_actions(action_set, n_actions, add_sufficient=False, mode=TRAIN):
     '''
     action_set - the actions available to the agent
     n_actions - batch size
@@ -28,12 +33,24 @@ def sample_actions(action_set, n_actions, add_sufficient=False):
         vec = action_to_vec(actions)
         action_vectors[i] = vec
 
-    suff_action_idx = np.random.randint(0, len(SUFFICIENT_ACTIONS))
-    right_suff_action_idx = np.random.randint(0, len(RIGHT_SUFFICIENT_ACTIONS))
+    if mode == TRAIN:
+        # sample from the training set
+        jump_set = TRAIN_SET_SUFFICIENT_JUMP_SET
+        right_set = TRAIN_SET_SUFFICIENT_RIGHT_SET
+    elif mode == VALIDATION:
+        # sample from the validation set
+        jump_set = VALIDATION_SET_SUFFICIENT_JUMP_SET
+        right_set = VALIDATION_SET_SUFFICIENT_RIGHT_SET
+    else:
+        # sample from the test set
+        jump_set = TEST_SET_SUFFICIENT_JUMP_SET
+        right_set = TEST_SET_SUFFICIENT_RIGHT_SET
 
+    suff_action_idx = np.random.randint(0, len(jump_set))
+    right_suff_action_idx = np.random.randint(0, len(right_set))
     if add_sufficient:
-        action_vectors[n_actions - 2] = action_to_vec(SUFFICIENT_ACTIONS[suff_action_idx])
-        action_vectors[n_actions - 1] = action_to_vec(RIGHT_SUFFICIENT_ACTIONS[right_suff_action_idx])
+        action_vectors[n_actions - 2] = action_to_vec(jump_set[suff_action_idx])
+        action_vectors[n_actions - 1] = action_to_vec(right_set[right_suff_action_idx])
 
         # always want to have the noop action available
         # action_vectors[n_actions - 1] = np.zeros_like(action_vectors[0])

@@ -22,6 +22,7 @@ from toolkit.train_marlios_carlos import *
 from toolkit.constants_carlos import *
 from toolkit.train_test_samples import *
 import toolkit.constants_carlos as action_constants
+import toolkit.train_test_samples as train_test_samples
 import argparse
 import ast
 import warnings
@@ -40,7 +41,7 @@ if __name__ == "__main__":
     parser.add_argument("--exploration-min", type=float, default=0.02, help="Exploration minimum (default: 0.02)")
     parser.add_argument("--exploration-max", type=float, default=1, help="Exploration maximum (default: 1.00)")
     parser.add_argument("--mario-env", type=str, default='SuperMarioBros-1-1-v0', help="Mario environment (default: 'SuperMarioBros-1-1-v0')")
-    parser.add_argument("--actions", type=str, default='SIMPLE_MOVEMENT', help="Actions (default: 'SIMPLE_MOVEMENT')")
+    parser.add_argument("--actions", type=str, default='TRAIN_SET', help="Actions (default: 'TRAIN_SET')")
     parser.add_argument("--num-episodes", type=int, default=10, help="Number of episodes (default: 10)")
     parser.add_argument("--run-id", type=str, default=None, help="Run ID (default: epoch timestring)")
     parser.add_argument("--ep-stat", type=int, default=100, help="Number of episodes to store stats (default: 100)")
@@ -52,7 +53,7 @@ if __name__ == "__main__":
     print('test: ', args)
 
     try:
-        action_space = getattr(action_constants, args.actions)
+        action_space = getattr(train_test_samples, args.actions)
     except AttributeError as e:
         raise ValueError("Invalid actions argument.")
     

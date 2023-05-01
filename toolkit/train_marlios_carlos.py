@@ -18,6 +18,7 @@ import json
 from toolkit.gym_env import *
 from toolkit.action_utils_carlos import *
 from toolkit.marlios_model_carlos import *
+from toolkit.swift_monkey import DQNSolver
 from toolkit.constants_carlos import *
 import wandb
 import time
@@ -33,7 +34,7 @@ def show_state(env, ep=0, info=""):
     plt.imshow(env.render(mode='rgb_array'))
     plt.title("Episode: %d %s" % (ep, info))
     plt.axis('off')
-    # display(plt.gcf(), clear=True)
+    display(plt.gcf(), clear=True)
 
 def make_env(env, actions=ACTION_SPACE):
     env = MaxAndSkipEnv(env, skip=2) # I am testing out fewer fram repetitions for our two actions modelling
@@ -225,6 +226,8 @@ def train(
                     step_action = ACTION_TO_INDEX[action]
 
                     state_next, cur_reward, terminal, info = env.step(step_action)
+                    if info["flag_get"] and terminal:
+                        cur_reward += 500
                     total_reward += cur_reward
                     reward += cur_reward
                     
@@ -371,7 +374,7 @@ def visualize(run_id, action_space, n_actions, lr=0.0001, exploration_min=0.02, 
             two_actions_vector = agent.cur_action_space[0, two_actions_index[0]]
             two_actions = vec_to_action(two_actions_vector.cpu()) # tuple of actions
             
-            print(two_actions)
+            # print(two_actions)
 
             # debugging info
             key = " | ".join([",".join(i) for i in two_actions])
