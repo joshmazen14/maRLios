@@ -22,7 +22,7 @@ from toolkit.constants import *
 import wandb
 
 def make_env(env, actions=ACTION_SPACE):
-    env = MaxAndSkipEnv(env, skip=2) # I am testing out fewer fram repetitions for our two actions modelling
+    env = MaxAndSkipEnv(env, skip=4)
     env = ProcessFrame84(env)
     env = ImageToPyTorch(env)
     env = BufferWrapper(env, 4)
@@ -87,25 +87,6 @@ def train(
     # from looking at the model, time starts at 400
     time_total = 400 #seconds
     time_taken = 0 #seconds
-
-    wandb.init(
-        # set the wandb project where this run will be logged
-        project="my-awesome-project",
-    
-        # track hyperparameters and run metadata
-        config={
-        "name": name or run_id,
-        "run_id": run_id,
-        "lr": lr,
-        "lr_decay": lr_decay,
-        "exploration_decay": exploration_decay,
-        "n_actions": n_actions,
-        "gamma": gamma,
-        "episodes": num_episodes,
-        "ep_per_stat": ep_per_stat
-        }
-    )
-
     
 
     # fh = open(f'progress-{run_id}.txt', 'a') # suppressing this for local runs
@@ -113,7 +94,7 @@ def train(
     env = make_env(env, ACTION_SPACE)
 
     #todo: add agent params as a setting/create different agents in diff functions to run 
-    exploration_max = min(1, max(exploration_max, exploration_min))
+    #exploration_max = min(1, max(exploration_max, exploration_min))
 
     agent = DQNAgent(
                      state_space=env.observation_space.shape,
@@ -134,6 +115,24 @@ def train(
                      init_max_time=max_time_per_ep
                      )
     
+    wandb.init(
+        # set the wandb project where this run will be logged
+        project="my-awesome-project",
+    
+        # track hyperparameters and run metadata
+        config={
+        "name": name or run_id,
+        "run_id": run_id,
+        "lr": lr,
+        "lr_decay": lr_decay,
+        "exploration_decay": exploration_decay,
+        "n_actions": n_actions,
+        "gamma": gamma,
+        "episodes": num_episodes,
+        "ep_per_stat": ep_per_stat,
+        "model_architecture": str(agent.local_net)
+        }
+    )
 
     # see if anyone can get this to work, i think it doesn't work on mps
     if device != 'mps':
@@ -150,6 +149,7 @@ def train(
     losses = []
     if pretrained:
         total_rewards = load_item(from_file='total_rewards-{}.pkl'.format(run_id))
+        avg_losses = load_item(from_file='avg_loss-{}.pkl'.format(run_id))
         # total_losses = load_item(from_file='total_losses-{}.pkl'.format(run_id))
         # total_info = load_item(from_file='total_info-{}.pkl'.format(run_id))
     
@@ -218,9 +218,8 @@ def train(
         # if len(avg_losses):
         #     wandb.log({"average episode loss": avg_losses[-1]})
         # gather average reward per eg:100 episodes stat
-        if len(total_rewards)%ep_per_stat == 0 and iteration > 0:
-            avg_rewards.append(np.average(total_rewards[-ep_per_stat:]))
-            avg_stdevs.append(np.std(total_rewards[-ep_per_stat:]))   
+        avg_rewards.append(np.average(total_rewards[-ep_per_stat:]))
+        avg_stdevs.append(np.std(total_rewards[-ep_per_stat:]))  
        
         losses = []
 
@@ -256,7 +255,7 @@ def train(
         agent.subsample_actions()
         
         # update the max time per episode every 1000 episodes
-        if ep_num % 1000 == 0 and agent.max_time_per_ep < 450 and ep_num>0:
+        if ep_num % 500 == 0 and ep_num>0:
             agent.max_time_per_ep += 50
 
         if training_mode and (ep_num % ep_per_stat) == 0 and ep_num != 0:

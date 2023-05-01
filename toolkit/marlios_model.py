@@ -16,29 +16,40 @@ class DQNSolver(nn.Module):
     def __init__(self, input_shape):
         super(DQNSolver, self).__init__()
         self.action_size = 10
+        
+        embedding_size = 64
+
+
         self.conv = nn.Sequential(
-            nn.Conv2d(input_shape[0], 64, kernel_size=8, stride=4),
-            nn.ReLU(),
+            nn.Conv2d(input_shape[0], 32, kernel_size=6, stride=2),
+            nn.BatchNorm2d(32),
+            nn.LeakyReLU(),
+            nn.Conv2d(32, 64, kernel_size=4, stride=2),
+            # nn.ReLU(),
             nn.BatchNorm2d(64),
-            nn.Conv2d(64, 64, kernel_size=4, stride=2),
-            nn.ReLU(),
-            nn.BatchNorm2d(64),
+            nn.LeakyReLU(),
             nn.Conv2d(64, 64, kernel_size=3, stride=1),
             #nn.MaxPool2d(),
-            nn.ReLU()
+            nn.LeakyReLU()
         )
         conv_out_size = self._get_conv_out(input_shape)
+
+        self.conv_to_embedding = nn.Sequential(
+            nn.Linear(conv_out_size, embedding_size),
+            nn.ReLU()
+        )
+
         # We take a vector of 5 being the initial action, and 5 being the second action for action size of 10
         self.actions_fc = nn.Sequential(
-            nn.Linear(self.action_size, 100),
+            nn.Linear(self.action_size, embedding_size),
             nn.ReLU()
         )
         self.fc = nn.Sequential(
-            nn.Linear(conv_out_size + 100, 512),
-            nn.BatchNorm1d(512),
+            nn.Linear(embedding_size*2, 200),
+            nn.BatchNorm1d(200),
             nn.ReLU(),
-            nn.Linear(512, 64), # added a new layer can play with the parameters
-            nn.BatchNorm1d(64),
+            nn.Linear(200, 32), # added a new layer can play with the parameters
+            nn.BatchNorm1d(32),
             nn.ReLU(),
             nn.Linear(32, 1)
         )
@@ -53,7 +64,7 @@ class DQNSolver(nn.Module):
         sampled_actions - np.array with n x 8 
         '''
         big_conv_out = self.conv(x).view(x.size()[0], -1)
-        conv_out = self.conv_to_32(big_conv_out)
+        conv_out = self.conv_to_embedding(big_conv_out)
 
         batched_conv_out = conv_out.reshape(conv_out.shape[0], 1, conv_out.shape[-1]).repeat(1, sampled_actions.shape[-2], 1)
 
@@ -78,7 +89,7 @@ class DQNSolver(nn.Module):
 class DQNAgent:
 
     def __init__(self, action_space, max_memory_size, batch_size, gamma, lr, state_space,
-                 dropout, exploration_max, exploration_min, exploration_decay, double_dq, pretrained, run_id='', n_actions = 32, device=None, init_max_time=500):
+                 dropout, exploration_max, exploration_min, exploration_decay, double_dq, pretrained, run_id='', n_actions = 32, delay_decay=0, device=None, init_max_time=500):
 
         # Define DQN Layers
         self.state_space = state_space
@@ -195,6 +206,7 @@ class DQNAgent:
             # Local net is used for the policy
 
             # Updated for generalization:
+        self.subsample_actions()
         results = self.local_net(state.to(self.device), self.cur_action_space).cpu()
         return torch.argmax(results, dim=1)
         # action = torch.tensor(self.cur_action_space[act_index])
@@ -248,11 +260,11 @@ class DQNAgent:
 
         # self.cur_action_space = torch.from_numpy(self.subsample_actions(self.n_actions)).to(torch.float32).to(self.device)
         # I am disabling this here for my testing, but also think we should add it to the run loop for testing til we are sure it works, idk
-        if (self.step > self.delay_decay):
-            self.exploration_rate *= self.exploration_decay
+        # if (self.step > self.delay_decay):
+        #     self.exploration_rate *= self.exploration_decay
         
         # Makes sure that exploration rate is always at least 'exploration min'
-        self.exploration_rate = max(self.exploration_rate, self.exploration_min)
+        #self.exploration_rate = max(self.exploration_rate, self.exploration_min)
 
         # self.decay_exploration()
 
