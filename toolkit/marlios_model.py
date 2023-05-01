@@ -19,10 +19,10 @@ class DQNSolver(nn.Module):
             nn.AvgPool2d(kernel_size=3, stride=1),
             nn.LeakyReLU(),
             nn.Conv2d(64, 64, kernel_size=6, stride=4),
-            nn.MaxPool2d(kernel_size=2, stride=1),
+            # nn.MaxPool2d(kernel_size=2, stride=1),
             nn.LeakyReLU(),
-            nn.Conv2d(64, 64, kernel_size=3, stride=1),
-            nn.LeakyReLU()
+            # nn.Conv2d(64, 64, kernel_size=3, stride=1),
+            # nn.LeakyReLU(),
         )
         conv_out_size = self._get_conv_out(input_shape)
 
@@ -32,22 +32,28 @@ class DQNSolver(nn.Module):
             nn.ReLU()
         )
 
+        # self.rnn = nn.Sequential(
+        #     nn.RNN(input_size=64, hidden_size=64, batch_first=True),
+        #     nn.LeakyReLU(),
+        # )
+
         action_size = 10
 
         self.action_fc = nn.Sequential(
             nn.Linear(action_size, 32),
             nn.ReLU(),
-            nn.Linear(32, 32),
-            nn.ReLU()
+            # nn.Linear(32, 32),
+            # nn.ReLU()
         )
         
         # We take a vector of 5 being the initial action, and 5 being the second action for action size of 10
         self.fc = nn.Sequential(
-            nn.Linear(64, 64),
+            nn.Linear(64, 32),
+            nn.BatchNorm1d(32),
             nn.ReLU(),
-            nn.Linear(64, 32), # added a new layer can play with the parameters
+            nn.Linear(32, 10), # added a new layer can play with the parameters
             nn.ReLU(),
-            nn.Linear(32, 1)
+            nn.Linear(10, 1)
         )
     
     def _get_conv_out(self, shape):
@@ -243,8 +249,7 @@ class DQNAgent:
         loss = self.l1(current, target) # maybe we can play with some L2 loss 
         loss.backward() # Compute gradients
         self.optimizer.step() # Backpropagate error
-
-        # self.cur_action_space = torch.from_numpy(self.subsample_actions(self.n_actions)).to(torch.float32).to(self.device)
+        self.subsample_actions()
         # I am disabling this here for my testing, but also think we should add it to the run loop for testing til we are sure it works, idk
         # decay lr
 

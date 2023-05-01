@@ -199,6 +199,7 @@ def train(
         
             agent.remember(state, two_actions_index, reward, state_next, terminal)
             loss = agent.experience_replay(debug=debug)
+            
 
             if loss != None:
                 # agent.decay_exploration()
@@ -241,11 +242,11 @@ def train(
         wandb.log({"total reward" : total_reward, 
                    "current lr": agent.lr,
                    "current exploration": agent.exploration_rate,
-                   "flag acquired": info['flag_get'],
+                   "flag acquired": 1. if info['flag_get'] else 0.,
                    "time": time_taken,
                    "x_position": info['x_pos'],
                    "avg_loss": avg_losses[-1],
-                   "max_time_per_ep": max_time_per_ep,
+                   "max_time_per_ep": agent.max_time_per_ep,
                    "avg_total_rewards": avg_rewards[-1],
                    "avg_std_dev": avg_stdevs[-1]
                    })
@@ -253,11 +254,10 @@ def train(
 
         agent.decay_lr(lr_decay)
         agent.decay_exploration()
-        agent.subsample_actions()
         
         # update the max time per episode every 1000 episodes
-        if ep_num % 2000 == 0 and agent.max_time_per_ep < 500 and ep_num>0:
-            agent.max_time_per_ep += 100
+        if ep_num % 500 == 499 and agent.max_time_per_ep < 500:
+            agent.max_time_per_ep = min(agent.max_time_per_ep + 50, 500)
 
         if training_mode and (ep_num % ep_per_stat) == 0 and ep_num != 0:
             save_checkpoint(agent, total_rewards, total_info, run_id)
