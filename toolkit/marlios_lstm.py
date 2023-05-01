@@ -153,14 +153,8 @@ class DQNAgent:
     
         # Create memory
         self.max_memory_size = max_memory_size
-        if self.pretrained:
-            with open(f"ending_position-{run_id}.pkl", 'rb') as f:
-                self.ending_position = pickle.load(f)
-            with open(f"num_in_queue-{run_id}.pkl", 'rb') as f:
-                self.num_in_queue = pickle.load(f)
-        else:
-            self.ending_position = 0
-            self.num_in_queue = 0
+        self.ending_position = 0
+        self.num_in_queue = 0
 
         self.STATE_MEM = torch.zeros(max_memory_size, *self.state_space)
         self.ACTION_MEM = torch.zeros(max_memory_size, 1) # this needs to be a matrix of the actual action taken
