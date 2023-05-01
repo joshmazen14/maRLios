@@ -79,7 +79,8 @@ def train(
         training_mode=True, pretrained=False, lr=0.0001, gamma=0.90, exploration_decay=0.995,
         exploration_min=0.02, ep_per_stat = 100, exploration_max = 1, 
         lr_decay = 0.99, mario_env='SuperMarioBros-1-1-v0', action_space=TWO_ACTIONS_SET,
-        num_episodes=1000, run_id=None, n_actions=20, debug = True, name=None, max_time_per_ep = 500, device=None, log=True
+        num_episodes=1000, run_id=None, n_actions=20, debug = True, name=None, max_time_per_ep = 500, device=None, log=True, 
+        hidden_shape=32
     ):
     
 
@@ -118,8 +119,8 @@ def train(
     agent = DQNAgent(
                      state_space=env.observation_space.shape,
                      action_space=action_space,
-                     max_memory_size=30000,
-                     batch_size=64,
+                     max_memory_size=20000,
+                     batch_size=n_actions,
                      gamma=gamma,
                      lr=lr,
                      dropout=None,
@@ -131,7 +132,8 @@ def train(
                      run_id=run_id,
                      n_actions=n_actions,
                      device=device,
-                     init_max_time=max_time_per_ep
+                     init_max_time=max_time_per_ep,
+                     hidden_shape=hidden_shape
                      )
     
 
@@ -199,15 +201,13 @@ def train(
             agent.remember(state, two_actions_index, reward, state_next, terminal, hidden)
             # lstm new
             prev_hidden_state = hidden
+            del hidden
 
             loss = agent.experience_replay(debug=debug)
             agent.subsample_actions() # change up action space
 
             if loss != None:
-                # agent.decay_exploration()
-                avg_loss_replay = torch.mean(loss).cpu().data.numpy().item(0)
-                # wandb.log({"average replay loss": avg_loss_replay})
-                losses.append(avg_loss_replay)
+                losses.append(loss)
             
             state = state_next
             if terminal or time_taken >= agent.max_time_per_ep:
@@ -256,7 +256,7 @@ def train(
 
         agent.decay_lr(lr_decay)
         agent.decay_exploration()
-        
+        torch.cuda.empty_cache()
         
         # update the max time per episode every 1000 episodes
         if ep_num % 1000 == 0 and agent.max_time_per_ep < 450 and iteration>0:
@@ -316,7 +316,7 @@ def visualize(run_id, action_space, n_actions, lr=0.0001, exploration_min=0.02, 
                      state_space=env.observation_space.shape,
                      action_space=action_space,
                      max_memory_size=30000,
-                     batch_size=64,
+                     batch_size=n_actions,
                      gamma=0.9,
                      lr=lr,
                      dropout=None,
