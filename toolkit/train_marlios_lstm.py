@@ -20,6 +20,8 @@ from toolkit.action_utils import *
 from toolkit.marlios_lstm import *
 from toolkit.constants import *
 import wandb
+import psutil
+import os
 
 def make_env(env, actions=ACTION_SPACE):
     env = MaxAndSkipEnv(env, skip=2) # I am testing out fewer fram repetitions for our two actions modelling
@@ -150,6 +152,11 @@ def train(
     avg_stdevs = [0]
 
     losses = []
+    pid = os.getpid()
+
+    # Create a process object to monitor memory usage
+    process = psutil.Process(pid)
+
     if pretrained:
         total_rewards = load_item(from_file='total_rewards-{}.pkl'.format(run_id))
         # total_losses = load_item(from_file='total_losses-{}.pkl'.format(run_id))
@@ -165,8 +172,11 @@ def train(
         steps = 0
 
         action_freq = {}
-
         prev_hidden_state = None
+
+        # Get the memory usage in MB
+        mem_usage = process.memory_info().rss / (1024 ** 2) # in Mb
+        print(f"Memory usage at episode {i}: {mem_usage:.2f} MB")
         while True:
             # lstm new
             two_actions_index, hidden = agent.act(state, prev_hidden_state)
@@ -342,15 +352,14 @@ def visualize(run_id, action_space, n_actions, lr=0.0001, exploration_min=0.02, 
         steps = 0
 
         action_freq = {}
+        prev_hidden_state = None
         while True:
 
             show_state(env, ep_num)
 
-            two_actions_index = agent.act(state)
+            two_actions_index, hidden = agent.act(state, prev_hidden_state)
             two_actions_vector = agent.cur_action_space[0, two_actions_index[0]]
             two_actions = vec_to_action(two_actions_vector.cpu()) # tuple of actions
-            
-            print(two_actions)
 
             # debugging info
             key = " | ".join([",".join(i) for i in two_actions])
@@ -377,7 +386,13 @@ def visualize(run_id, action_space, n_actions, lr=0.0001, exploration_min=0.02, 
             terminal = torch.tensor([int(terminal)]).unsqueeze(0)
             
             
+            agent.remember(state, two_actions_index, reward, state_next, terminal, hidden)
+            # lstm new
+            prev_hidden_state = hidden
+            del hidden
+            agent.subsample_actions() # change up action space
             state = state_next
+            
             if terminal:
                 break
 

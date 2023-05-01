@@ -196,6 +196,11 @@ class DQNAgent:
 
     def remember(self, state, action, reward, state2, done, hidden_state):
         hidden_state.detach()
+        state.detach()
+        action.detach()
+        reward.detach()
+        state2.detach()
+        done.detach()
         # hidden_state[1].detach()
         self.STATE_MEM[self.ending_position] = state.float()
         self.ACTION_MEM[self.ending_position] = action.float()
