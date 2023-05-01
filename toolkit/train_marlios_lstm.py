@@ -176,12 +176,13 @@ def train(
 
         # Get the memory usage in MB
         mem_usage = process.memory_info().rss / (1024 ** 2) # in Mb
-        print(f"Memory usage at episode {i}: {mem_usage:.2f} MB")
+        # print(f"Memory usage at episode {ep_num}: {mem_usage:.2f} MB")
         while True:
             # lstm new
             two_actions_index, hidden = agent.act(state, prev_hidden_state)
             two_actions_vector = agent.cur_action_space[0, two_actions_index[0]]
             two_actions = vec_to_action(two_actions_vector.cpu()) # tuple of actions
+            hidden = hidden.detach()
 
             # debugging info
             key = " | ".join([",".join(i) for i in two_actions])
@@ -269,14 +270,14 @@ def train(
         torch.cuda.empty_cache()
         
         # update the max time per episode every 1000 episodes
-        if ep_num % 1000 == 0 and agent.max_time_per_ep < 450 and iteration>0:
+        if ep_num % 500 == 0 and agent.max_time_per_ep < 450 and iteration>0:
             agent.max_time_per_ep += 50
 
         if training_mode and (ep_num % ep_per_stat) == 0 and ep_num != 0:
             save_checkpoint(agent, total_rewards, total_info, run_id)
         
         with open(f'actions_chosen-{run_id}.txt', 'a') as f:
-            f.write("Action Frequencies for Episode {}, Exploration = {:4f}, Tot Reward = {}\n".format(ep_num + 1, agent.exploration_rate, total_reward))
+            f.write("Action Frequencies for Episode {}, Exploration = {:4f}, Tot Reward = {}, Mem Useage {:.2f} MB\n".format(ep_num + 1, agent.exploration_rate, total_reward, mem_usage))
             f.write(json.dumps(action_freq) + "\n\n")
         
     
@@ -392,7 +393,7 @@ def visualize(run_id, action_space, n_actions, lr=0.0001, exploration_min=0.02, 
             del hidden
             agent.subsample_actions() # change up action space
             state = state_next
-            
+
             if terminal:
                 break
 
