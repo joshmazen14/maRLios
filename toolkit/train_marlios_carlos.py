@@ -182,6 +182,7 @@ def train(
     avg_losses = [0]
     avg_rewards = [0]
     avg_stdevs = [0]
+    avg_completion = [0]
 
     losses = []
     if pretrained:
@@ -259,7 +260,9 @@ def train(
         # gather average reward per eg:100 episodes stat
         # if len(total_rewards)%ep_per_stat == 0 and iteration > 0:
         avg_rewards.append(np.average(total_rewards[-ep_per_stat:]))
-        avg_stdevs.append(np.std(total_rewards[-ep_per_stat:]))   
+        avg_stdevs.append(np.std(total_rewards[-ep_per_stat:]))  
+        avg_completion.append(np.average([i['flag_get'] for i in total_info[-ep_per_stat:]]))
+         
        
         losses = []
 
@@ -280,7 +283,7 @@ def train(
         wandb.log({"total reward" : total_reward, 
                    "current lr": agent.lr,
                    "current exploration": agent.exploration_rate,
-                   "flag acquired": info['flag_get'],
+                   "Avg Completion Rate": avg_completion[-1],
                    "time": time_taken,
                    "x_position": info['x_pos'],
                    "avg_loss": avg_losses[-1],
