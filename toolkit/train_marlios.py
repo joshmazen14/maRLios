@@ -22,7 +22,7 @@ from toolkit.constants import *
 import wandb
 
 def make_env(env, actions=ACTION_SPACE):
-    env = MaxAndSkipEnv(env, skip=4)
+    env = MaxAndSkipEnv(env, skip=2)
     env = ProcessFrame84(env)
     env = ImageToPyTorch(env)
     env = BufferWrapper(env, 4)
@@ -94,7 +94,7 @@ def train(
     env = make_env(env, ACTION_SPACE)
 
     #todo: add agent params as a setting/create different agents in diff functions to run 
-    #exploration_max = min(1, max(exploration_max, exploration_min))
+    exploration_max = min(1, max(exploration_max, exploration_min))
 
     agent = DQNAgent(
                      state_space=env.observation_space.shape,

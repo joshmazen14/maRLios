@@ -21,7 +21,7 @@ class DQNSolver(nn.Module):
 
 
         self.conv = nn.Sequential(
-            nn.Conv2d(input_shape[0], 32, kernel_size=6, stride=2),
+            nn.Conv2d(input_shape[0], 32, kernel_size=8, stride=4),
             nn.BatchNorm2d(32),
             nn.LeakyReLU(),
             nn.Conv2d(32, 64, kernel_size=4, stride=2),
@@ -32,6 +32,7 @@ class DQNSolver(nn.Module):
             #nn.MaxPool2d(),
             nn.LeakyReLU()
         )
+        
         conv_out_size = self._get_conv_out(input_shape)
 
         self.conv_to_embedding = nn.Sequential(
