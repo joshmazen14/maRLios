@@ -18,14 +18,14 @@ import numpy as np
 import toolkit.action_utils_carlos as action_utils
 # from toolkit.swift_monkey import DQNSolver
 from toolkit.next_model_carlos import DQNSolver
-
+from toolkit.train_test_samples import *
     
 
 class DQNAgent:
 
     def __init__(self, action_space, max_memory_size, batch_size, gamma, lr, state_space,
                  dropout, exploration_max, exploration_min, exploration_decay, double_dq, pretrained,
-                 run_id='', n_actions=32,  sample_actions=True, device=None, init_max_time=500, mode=action_utils.TRAIN):
+                 run_id='', n_actions=32,  sample_actions=True, device=None, init_max_time=500, mode=action_utils.TRAIN, val_action_space=VALIDATION_SET):
         
         # super(DQNAgent, self).__init__()
 
@@ -34,6 +34,7 @@ class DQNAgent:
         self.mode = mode
 
         self.action_space = action_space # this will be a set of actions ie: a subset of TWO_ACTIONS in constants.py
+        self.val_action_space = val_action_space # this will be a set of actions ie: a subset of TWO_ACTIONS in constants.py
         self.n_actions = n_actions # initial number of actions to sample
         self.sample_suff_actions = sample_actions # whether to sample the sufficient actions or not
 
@@ -107,6 +108,13 @@ class DQNAgent:
         '''
         self.cur_action_space = torch.from_numpy(action_utils.sample_actions(
             self.action_space, self.n_actions, self.sample_suff_actions, self.mode)).to(torch.float32).to(self.device).unsqueeze(0)
+        
+    def subsample_val_actions(self):
+        '''
+        Changes curaction space to be a random sample of what it was
+        '''
+        self.cur_val_action_space = torch.from_numpy(action_utils.sample_actions(
+            self.val_action_space, self.n_actions, self.sample_suff_actions, action_utils.VALIDATION)).to(torch.float32).to(self.device).unsqueeze(0)
 
 
     def remember(self, state, action, reward, state2, done):
@@ -155,6 +163,16 @@ class DQNAgent:
         results = self.local_net(state.to(self.device), self.cur_action_space).cpu()
         return torch.argmax(results, dim=1)
         # action = torch.tensor(self.cur_action_space[act_index])
+
+    def act_validate(self, state):
+        '''
+        Returns the action vector
+        '''
+        # Epsilon-greedy action
+
+        self.subsample_val_actions() # Maybe change this to sample on each episode instead of each step
+        results = self.local_net(state.to(self.device), self.cur_val_action_space).cpu()
+        return torch.argmax(results, dim=1)
 
     def copy_model(self):
         # Copy local net weights into target net

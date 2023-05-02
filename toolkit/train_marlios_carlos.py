@@ -20,6 +20,7 @@ from toolkit.action_utils_carlos import *
 from toolkit.marlios_model_carlos import *
 from toolkit.swift_monkey import DQNSolver
 from toolkit.constants_carlos import *
+from toolkit.train_test_samples import *
 import wandb
 import time
 import warnings
@@ -115,7 +116,7 @@ def plot_loss(ep_per_stat=100, avg_loss=[], from_file=None):
 def train(
         training_mode=True, pretrained=False, lr=0.0001, gamma=0.90, exploration_decay=0.995,
         exploration_min=0.02, ep_per_stat=100, exploration_max=1, sample_actions=True,
-        lr_decay = 0.99, mario_env='SuperMarioBros-1-1-v0', action_space=TWO_ACTIONS_SET,
+        lr_decay = 0.99, mario_env='SuperMarioBros-1-1-v0', action_space=TRAIN_SET,
         num_episodes=1000, run_id=None, n_actions=20, debug = True, name=None, max_time_per_ep = 500, device=None
     ):
     
@@ -183,6 +184,11 @@ def train(
     avg_rewards = [0]
     avg_stdevs = [0]
     avg_completion = [0]
+    total_rewards_val = []
+    total_info_val = []
+    avg_stdevs_val = [0]
+    avg_rewards_val = [0]
+    avg_completion_val = [0]
 
     losses = []
     if pretrained:
@@ -289,13 +295,29 @@ def train(
                    "avg_loss": avg_losses[-1],
                    "max_time_per_ep": max_time_per_ep,
                    "avg_total_rewards": avg_rewards[-1],
-                   "avg_std_dev": avg_stdevs[-1]
+                   "avg_std_dev": avg_stdevs[-1],
                    })
 
 
         agent.decay_lr(lr_decay)
         agent.decay_exploration()
         # agent.subsample_actions()
+
+        # Run validation run every 10 episodes
+        if ep_num % 10 == 0 and ep_num != 0:
+            total_reward_val, info_val = validate_run(agent, env)
+            total_rewards_val.append(total_reward)
+            total_info_val.append(info_val)
+            avg_rewards_val.append(np.average(total_rewards_val[-ep_per_stat:]))
+            avg_stdevs_val.append(np.std(total_rewards_val[-ep_per_stat:]))  
+            avg_completion_val.append(np.average([i['flag_get'] for i in total_info[-ep_per_stat:]]))
+
+            wandb.log({
+                "total_rewards_validation": total_rewards_val[-1],
+                "avg_total_rewards_validation": avg_rewards_val[-1],
+                "avg_std_dev_validation": avg_stdevs_val[-1],
+                "Avg Completion Rate Validatiton": avg_completion_val[-1]
+            })
         
         # update the max time per episode every 1000 episodes
         if ep_num % 500 == 0 and agent.max_time_per_ep < 450 and iteration>0:
@@ -307,8 +329,6 @@ def train(
         with open(f'actions_chosen-{run_id}.txt', 'a') as f:
             f.write("Action Frequencies for Episode {}, Exploration = {:4f}, Tot Reward = {}\n".format(ep_num + 1, agent.exploration_rate, total_reward))
             f.write(json.dumps(action_freq) + "\n\n")
-        
-    
     
     if training_mode:
         save_checkpoint(agent, total_rewards, total_info, avg_losses, run_id)
@@ -320,6 +340,39 @@ def train(
         plot_rewards(ep_per_stat=ep_per_stat, total_rewards=total_rewards)
 
     wandb.finish()
+
+def validate_run(agent, env):
+    state = env.reset() 
+    state = torch.Tensor([state])
+    total_reward = 0
+    while True:
+        two_actions_index = agent.act_validate(state)
+        two_actions_vector = agent.cur_action_space[0, two_actions_index[0]]
+        two_actions = vec_to_action(two_actions_vector.cpu()) # tuple of actions
+        
+        reward = 0
+        info = None
+        terminal = False
+        for action in two_actions: 
+            if not terminal:
+                # compute index into ACTION_SPACE of our action
+                step_action = ACTION_TO_INDEX[action]
+
+                state_next, cur_reward, terminal, info = env.step(step_action)
+                if info["flag_get"] and terminal:
+                    cur_reward += 500
+                total_reward += cur_reward
+                reward += cur_reward
+                
+        state_next = torch.Tensor([state_next])
+        reward = torch.tensor([reward]).unsqueeze(0)        
+        terminal = torch.tensor([int(terminal)]).unsqueeze(0)
+        
+        state = state_next
+        if terminal:
+            break
+
+    return total_reward, info
 
 def visualize(run_id, action_space, n_actions, lr=0.0001, exploration_min=0.02, ep_per_stat = 100, exploration_max = 0.1, mario_env='SuperMarioBros-1-1-v0',  num_episodes=1000, log_stats = False, randomness = True, sample_actions=True):
    
