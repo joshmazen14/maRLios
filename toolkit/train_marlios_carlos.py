@@ -353,7 +353,8 @@ def visualize(run_id, action_space, n_actions, lr=0.0001, exploration_min=0.02, 
                      pretrained=True,
                      run_id=run_id,
                      n_actions=n_actions,
-                     sample_actions=sample_actions)
+                     sample_actions=sample_actions,
+                     mode=action_utils.TEST)
     
     
     # num_episodes = 10
@@ -424,7 +425,6 @@ def visualize(run_id, action_space, n_actions, lr=0.0001, exploration_min=0.02, 
             with open(f'visualized_actions_chosen-{run_id}.txt', 'a') as f:
                 f.write("Action Frequencies for Episode {}, Exploration = {:4f}\n".format(ep_num + 1, agent.exploration_rate))
                 f.write(json.dumps(action_freq) + "\n\n")
-        
     
     env.close()
     fh.close()

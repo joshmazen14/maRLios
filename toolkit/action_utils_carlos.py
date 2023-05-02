@@ -13,7 +13,7 @@ Returns: an array of action vector representations to feed into our fc network
 '''
 
 
-def sample_actions(action_set, n_actions, add_sufficient=False, mode=TRAIN):
+def sample_actions(action_set, n_actions, add_sufficient=True, mode=TRAIN):
     '''
     action_set - the actions available to the agent
     n_actions - batch size
