@@ -897,3 +897,57 @@ SIMPLE_MOVEMENT = [
     [['A'], ['A']],
     [['left'], ['left']]
 ]
+
+
+
+TRAIN_SET= [
+	 [['A', 'down', 'right'], ['A', 'down']] ,
+	 [['A', 'B', 'right'], ['A', 'right']] ,
+	 [['A', 'down', 'right'], ['A', 'down', 'right']] ,
+	 [['A', 'right'], ['A', 'B']] ,
+	 [['A', 'B', 'right'], ['A', 'down', 'right']] ,
+	 [['A', 'down', 'right'], ['A', 'B', 'right']] ,
+	 [['A', 'B', 'down', 'right'], ['A', 'B', 'down']] ,
+	 [['A', 'B', 'down', 'right'], ['A', 'B', 'down', 'right']] ,
+	 [['A', 'B', 'down', 'right'], ['A', 'right']] ,
+	 [['A', 'B', 'down', 'right'], ['A']] ,
+	 [['A'], ['A', 'right']] ,
+	 [['A', 'right'], ['A', 'B', 'right']] ,
+	 [['A', 'down', 'right'], ['A', 'right']] ,
+	 [['A', 'B', 'down'], ['A', 'down', 'right']] ,
+	 [['A', 'B', 'right'], ['A', 'B', 'right']] ,
+	 [['A', 'B'], ['A', 'B', 'right']] ,
+	 [['A', 'down', 'right'], ['A', 'B', 'down', 'right']] ,
+	 [['A', 'right'], ['A', 'down']] ,
+	 [['A', 'B'], ['A', 'B', 'down', 'right']] ,
+	 [['A', 'down', 'right'], ['A']] ,
+	 [['A', 'B', 'right'], ['A', 'down']] ,
+	 [['A', 'B', 'down'], ['A', 'B', 'right']] ,
+	 [['A', 'down', 'right'], ['A', 'B', 'down']] ,
+	 [['A', 'B', 'right'], ['A', 'B', 'down', 'right']] ,
+	 [['A', 'B', 'down', 'right'], ['A', 'down', 'right']] ,
+	 [['A', 'right'], ['A', 'B', 'down']] ,
+	 [['A', 'down'], ['A', 'right']] ,
+	 [['A', 'down'], ['A', 'B', 'down', 'right']] ,
+	 [['A', 'down'], ['A', 'down', 'right']] ,
+	 [['A', 'right'], ['A', 'B', 'down', 'right']] ,
+	 [['A'], ['A', 'B', 'right']] ,
+	 [['A', 'B', 'right'], ['A', 'B']] ,
+	 [['A', 'right'], ['A', 'right']] ,]
+
+TEST_SET = [
+	 [['A'], ['A', 'B', 'down', 'right']] ,
+	 [['A'], ['A', 'down', 'right']] ,
+	 [['A', 'B'], ['A', 'down', 'right']] ,
+	 [['A', 'B'], ['A', 'right']] ,
+	 [['A', 'B', 'down'], ['A', 'B', 'down', 'right']] ,
+	 [['A', 'B', 'down'], ['A', 'right']] ,
+	 [['A', 'B', 'down', 'right'], ['A', 'B']] ,
+	 [['A', 'B', 'down', 'right'], ['A', 'B', 'right']] ,
+	 [['A', 'B', 'down', 'right'], ['A', 'down']] ,
+	 [['A', 'B', 'right'], ['A']] ,
+	 [['A', 'B', 'right'], ['A', 'B', 'down']] ,
+	 [['A', 'down'], ['A', 'B', 'right']] ,
+	 [['A', 'down', 'right'], ['A', 'B']] ,
+	 [['A', 'right'], ['A']] ,
+	 [['A', 'right'], ['A', 'down', 'right']] ,]
