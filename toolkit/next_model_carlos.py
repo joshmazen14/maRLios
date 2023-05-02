@@ -30,7 +30,7 @@ class DQNSolver(nn.Module):
         self.conv_to_fc = nn.Sequential(
             nn.Linear(conv_out_size, 256),
             nn.LeakyReLU(),
-            nn.Linear(conv_out_size, 64),
+            nn.Linear(256, 64),
             nn.LeakyReLU()
         )
 
