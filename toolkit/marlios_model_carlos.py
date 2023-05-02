@@ -169,7 +169,7 @@ class DQNAgent:
 
     def decay_lr(self, lr_decay):
         self.lr *= lr_decay
-        self.lr = max(self.lr, 0.000000001)
+        self.lr = max(self.lr, 1e-6)
         for g in self.optimizer.param_groups:
             g['lr'] = self.lr
     
