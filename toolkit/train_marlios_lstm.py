@@ -82,7 +82,7 @@ def train(
         exploration_min=0.02, ep_per_stat = 100, exploration_max = 1, 
         lr_decay = 0.99, mario_env='SuperMarioBros-1-1-v0', action_space=TWO_ACTIONS_SET,
         num_episodes=1000, run_id=None, n_actions=20, debug = True, name=None, max_time_per_ep = 500, device=None, log=True, 
-        hidden_shape=32
+        hidden_shape=32, add_sufficient = True, training_stage = "train"
     ):
     
 
@@ -135,7 +135,9 @@ def train(
                      n_actions=n_actions,
                      device=device,
                      init_max_time=max_time_per_ep,
-                     hidden_shape=hidden_shape
+                     hidden_shape=hidden_shape,
+                     training_stage=training_stage,
+                     add_sufficient=add_sufficient
                      )
     
 

@@ -114,7 +114,11 @@ class DQNSolver(nn.Module):
 class DQNAgent:
 
     def __init__(self, action_space, max_memory_size, batch_size, gamma, lr, state_space,
-                 dropout, exploration_max, exploration_min, exploration_decay, double_dq, pretrained, run_id='', n_actions = 64, device=None, init_max_time=500, hidden_shape=32):
+                 dropout, exploration_max, exploration_min, exploration_decay, double_dq, pretrained, run_id='', n_actions = 64, device=None, init_max_time=500, hidden_shape=32,
+                 training_stage = "train", add_sufficient = True
+                 ):
+        self.training_stage = training_stage
+        self.add_sufficient = add_sufficient
 
         # Define DQN Layers
         self.state_space = state_space
@@ -184,7 +188,9 @@ class DQNAgent:
         Changes curaction space to be a random sample of what it was
         '''
 
-        self.cur_action_space = torch.from_numpy(toolkit.action_utils.sample_actions(self.action_space, self.n_actions)).to(torch.float32).to(self.device).unsqueeze(0)
+        self.cur_action_space = torch.from_numpy(toolkit.action_utils.sample_actions(
+            self.action_space, self.n_actions, add_sufficient=self.add_sufficient, training_stage=self.training_stage)
+            ).to(torch.float32).to(self.device).unsqueeze(0)
     
 
 
