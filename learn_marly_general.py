@@ -40,7 +40,7 @@ def show_state(env, ep=0, info=""):
     # display(plt.gcf(), clear=True)
 
 def make_env(env, actions=ACTION_SPACE):
-    env = MaxAndSkipEnv(env, skip=4) # I am testing out fewer fram repetitions for our two actions modelling
+    env = MaxAndSkipEnv(env, skip=2) # I am testing out fewer fram repetitions for our two actions modelling
     env = ProcessFrame84(env)
     env = ImageToPyTorch(env)
     env = BufferWrapper(env, 4)
@@ -118,7 +118,7 @@ def plot_loss(ep_per_stat = 100, total_loss = [], from_file = None):
 # define the run function with some helpful debugging stats
 
 def main(training_mode=True, pretrained=False, lr=0.0001, gamma=0.90, exploration_decay=0.995, exploration_min=0.02, 
-        ep_per_stat = 100, exploration_max = 1,
+        ep_per_stat = 100, exploration_max = 1, sample_actions = True,
         mario_env='SuperMarioBros-1-1-v0', action_space=TWO_ACTIONS_SET, num_episodes=1000, run_id=None, n_actions=5):
    
     run_id = run_id or generate_epoch_time_id()
@@ -163,7 +163,8 @@ def main(training_mode=True, pretrained=False, lr=0.0001, gamma=0.90, exploratio
                      double_dq=True,
                      pretrained=pretrained,
                      run_id=run_id,
-                     n_actions=n_actions)
+                     n_actions=n_actions,
+                     sample_actions=sample_actions)
     
     
     # num_episodes = 10
@@ -275,7 +276,8 @@ if __name__ == "__main__":
     parser.add_argument("--num-episodes", type=int, default=10, help="Number of episodes (default: 10)")
     parser.add_argument("--run-id", type=str, default=None, help="Run ID (default: epoch timestring)")
     parser.add_argument("--ep-stat", type=int, default=100, help="Number of episodes to store stats (default: 100)")
-    parser.add_argument("--n-actions", type=int, default=None, help="Number of actions to to give to model (default: 14)")
+    parser.add_argument("--n-actions", type=int, default=None, help="Number of actions to to give to model (default: len(action_space))")
+    parser.add_argument("--sample-actions", type=ast.literal_eval, default=False, help="Sample actions from action space (default: False)")
 
     args = parser.parse_args()
     print('test: ', args)
@@ -286,9 +288,9 @@ if __name__ == "__main__":
         raise ValueError("Invalid actions argument.")
     
     if (not args.n_actions):
-        n_actions = len(action_space) + 2
+        n_actions = len(action_space) + 2 if args.sample_actions else len(action_space)
     else:
-        n_actions=args.n_actions
+        n_actions = args.n_actions
 
 
 
@@ -304,6 +306,7 @@ if __name__ == "__main__":
          action_space=action_space,
          num_episodes=args.num_episodes,
          n_actions=n_actions, # +2 for no-op and sufficient action
-         run_id=args.run_id)
+         run_id=args.run_id,
+         sample_actions=args.sample_actions)
     
 

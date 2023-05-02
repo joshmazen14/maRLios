@@ -1,13 +1,19 @@
 import numpy as np
 import random
-from toolkit.constants import BUTTONS, ACTION_SPACE, BUTTON_MAP, SUFFICIENT_ACTIONS, RIGHT_SUFFICIENT_ACTIONS
-from toolkit.train_test_samples import *
+from toolkit.constants_carlos import BUTTONS, ACTION_SPACE, BUTTON_MAP, SUFFICIENT_ACTIONS, RIGHT_SUFFICIENT_ACTIONS
+from toolkit.train_test_samples import TRAIN_SET_SUFFICIENT_JUMP_SET, TRAIN_SET_SUFFICIENT_RIGHT_SET, TEST_SET_SUFFICIENT_JUMP_SET, TEST_SET_SUFFICIENT_RIGHT_SET, VALIDATION_SET_SUFFICIENT_JUMP_SET, VALIDATION_SET_SUFFICIENT_RIGHT_SET
+
+TRAIN = 1
+VALIDATION = 2
+TEST = 3
 
 '''
 PRE: action set has been filtered to not include the holdout actions
 Returns: an array of action vector representations to feed into our fc network
 '''
-def sample_actions(action_set, n_actions, add_sufficient=False, training_stage = "train"):
+
+
+def sample_actions(action_set, n_actions, add_sufficient=True, mode=TRAIN):
     '''
     action_set - the actions available to the agent
     n_actions - batch size
@@ -17,39 +23,39 @@ def sample_actions(action_set, n_actions, add_sufficient=False, training_stage =
     May introduce a single duplicate value with some small probability, but we think that will not pose much of an issue. This is done to ensure
     that the sampled actions always contain an action that can be used to complete the level. 
     '''
-    # get the appropriate sufficient set to sample from
-    sufficient_jump = None
-    sufficient_right = None
-    if training_stage == "train":
-        sufficient_jump = TRAIN_SET_SUFFICIENT_JUMP_SET
-        sufficient_right = TRAIN_SET_SUFFICIENT_RIGHT_SET
-    elif training_stage == "test": 
-        sufficient_jump = TEST_SET_SUFFICIENT_JUMP_SET
-        sufficient_right = TEST_SET_SUFFICIENT_RIGHT_SET
-    else:
-        sufficient_jump = VALIDATION_SET_SUFFICIENT_JUMP_SET
-        sufficient_right = VALIDATION_SET_SUFFICIENT_RIGHT_SET
-
     action_vectors = np.zeros((n_actions, 10))
-
-    dif = 0
-    if add_sufficient:
-        dif = 2
-
-    sampled_idx = random.sample(range(len(action_set)), n_actions-dif)
+    sampled_idx = random.sample(range(len(action_set)), n_actions-2)
     cur_actions = [action_set[i] for i in sampled_idx]
+
 
     for i, actions in enumerate(cur_actions):
         vec = action_to_vec(actions)
         action_vectors[i] = vec
 
+    if mode == TRAIN:
+        # sample from the training set
+        jump_set = TRAIN_SET_SUFFICIENT_JUMP_SET
+        right_set = TRAIN_SET_SUFFICIENT_RIGHT_SET
+    elif mode == VALIDATION:
+        # sample from the validation set
+        jump_set = VALIDATION_SET_SUFFICIENT_JUMP_SET
+        right_set = VALIDATION_SET_SUFFICIENT_RIGHT_SET
+    else:
+        # sample from the test set
+        jump_set = TEST_SET_SUFFICIENT_JUMP_SET
+        right_set = TEST_SET_SUFFICIENT_RIGHT_SET
+
+    suff_action_idx = np.random.randint(0, len(jump_set))
+    right_suff_action_idx = np.random.randint(0, len(right_set))
     if add_sufficient:
-        suff_jump_idx = np.random.randint(0, len(sufficient_jump))
-        suff_right_idx = np.random.randint(0, len(sufficient_right))
-        action_vectors[n_actions - dif] = action_to_vec(sufficient_jump[suff_jump_idx])
-        action_vectors[n_actions - dif+1] = action_to_vec(sufficient_right[suff_right_idx])
+        action_vectors[n_actions - 2] = action_to_vec(jump_set[suff_action_idx])
+        action_vectors[n_actions - 1] = action_to_vec(right_set[right_suff_action_idx])
+
+        # always want to have the noop action available
+        # action_vectors[n_actions - 1] = np.zeros_like(action_vectors[0])
 
     return action_vectors
+
 
 def vec_to_action(vec):
     '''
@@ -104,7 +110,6 @@ def suffient_action_space(action_space):
 
     Returns Boolean. 
     '''
-    
     right_present = False
     a_present = False
     

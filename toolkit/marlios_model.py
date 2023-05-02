@@ -63,6 +63,7 @@ class DQNSolver(nn.Module):
         
         # We take a vector of 5 being the initial action, and 5 being the second action for action size of 10
         self.actions_fc = nn.Sequential(
+<<<<<<< HEAD
             nn.Linear(self.action_size, embedding_size),
             nn.ReLU()
         )
@@ -73,6 +74,19 @@ class DQNSolver(nn.Module):
             nn.Linear(32, 10), # added a new layer can play with the parameters
             nn.ReLU(),
             nn.Linear(10, 1)
+=======
+            # nn.Linear(self.action_size, 100),
+            nn.Linear(self.action_size, 40),
+            nn.LeakyReLU(),
+            # nn.ReLU()
+        )
+        self.fc = nn.Sequential(
+            nn.Linear(64, 64),
+            nn.ReLU(),
+            nn.Linear(64, 32), # added a new layer can play with the parameters
+            nn.ReLU(),
+            nn.Linear(32, 1)
+>>>>>>> origin/carlos_staging_consolidation
         )
 
         for layer in self.fc:
@@ -94,6 +108,7 @@ class DQNSolver(nn.Module):
 
         batched_conv_out = conv_out.reshape(conv_out.shape[0], 1, conv_out.shape[-1]).repeat(1, sampled_actions.shape[-2], 1)
 
+<<<<<<< HEAD
         batched_actions = self.actions_fc(sampled_actions)
         
         batched_state_actions = torch.cat((batched_conv_out, batched_actions), dim=2)
@@ -107,6 +122,13 @@ class DQNSolver(nn.Module):
         # Reshape output back to 3D tensor
         out = fc_output.view(batched_state_actions.shape[0], batched_state_actions.shape[1], -1)
         out =  torch.flatten(out, start_dim=1)
+=======
+        latent_actions = self.action_fc(sampled_actions)
+
+        batched_actions = torch.cat((batched_conv_out, latent_actions), dim=2)
+
+        out =  torch.flatten(self.fc(batched_actions), start_dim=1)
+>>>>>>> origin/carlos_staging_consolidation
 
         return out
 
@@ -232,7 +254,11 @@ class DQNAgent:
             # Local net is used for the policy
 
             # Updated for generalization:
+<<<<<<< HEAD
         self.subsample_actions()
+=======
+        self.cur_action_space = torch.from_numpy(self.subsample_actions(self.n_actions, self.sample_suff_actions)).to(torch.float32).to(self.device).unsqueeze(0) # make it include a batch dimension by defautl
+>>>>>>> origin/carlos_staging_consolidation
         results = self.local_net(state.to(self.device), self.cur_action_space).cpu()
         return torch.argmax(results, dim=1)
         # action = torch.tensor(self.cur_action_space[act_index])
@@ -284,7 +310,7 @@ class DQNAgent:
         loss.backward() # Compute gradients
         self.optimizer.step() # Backpropagate error
 
-        # self.cur_action_space = torch.from_numpy(self.subsample_actions(self.n_actions)).to(torch.float32).to(self.device)
+        # self.cur_action_space = torch.from_numpy(self.subsample_actions(self.n_actions, self.sample_suff_actions)).to(torch.float32).to(self.device).unsqueeze(0) # make it include a batch dimension by defautl
         # I am disabling this here for my testing, but also think we should add it to the run loop for testing til we are sure it works, idk
         # if (self.step > self.delay_decay):
         #     self.exploration_rate *= self.exploration_decay
@@ -296,6 +322,9 @@ class DQNAgent:
 
         if debug:
             return loss.float()
+<<<<<<< HEAD
         
         return target, current, loss
         # decay lr
+=======
+>>>>>>> origin/carlos_staging_consolidation
