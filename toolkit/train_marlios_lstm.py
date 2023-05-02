@@ -131,6 +131,7 @@ def train(
                      exploration_decay=exploration_decay,
                      double_dq=True,
                      pretrained=pretrained,
+                     lr_decay=lr_decay,
                      run_id=run_id,
                      n_actions=n_actions,
                      device=device,
@@ -232,9 +233,8 @@ def train(
         # if len(avg_losses):
         #     wandb.log({"average episode loss": avg_losses[-1]})
         # gather average reward per eg:100 episodes stat
-        if len(total_rewards)%ep_per_stat == 0 and iteration > 0:
-            avg_rewards.append(np.average(total_rewards[-ep_per_stat:]))
-            avg_stdevs.append(np.std(total_rewards[-ep_per_stat:]))   
+        avg_rewards.append(np.average(total_rewards[-ep_per_stat:]))
+        avg_stdevs.append(np.std(total_rewards[-ep_per_stat:]))   
        
         losses = []
 
@@ -265,7 +265,7 @@ def train(
                     })
 
 
-        agent.decay_lr_step(1-lr_decay)
+        #agent.decay_lr_step(1-lr_decay)
         agent.decay_exploration()
         torch.cuda.empty_cache()
         

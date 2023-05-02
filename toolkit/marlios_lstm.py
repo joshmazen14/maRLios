@@ -114,7 +114,7 @@ class DQNSolver(nn.Module):
 class DQNAgent:
 
     def __init__(self, action_space, max_memory_size, batch_size, gamma, lr, state_space,
-                 dropout, exploration_max, exploration_min, exploration_decay, double_dq, pretrained, run_id='', n_actions = 64, device=None, init_max_time=500, hidden_shape=32):
+                 dropout, exploration_max, exploration_min, exploration_decay, double_dq, pretrained, lr_decay=0.99, run_id='', n_actions = 64, device=None, init_max_time=500, hidden_shape=32):
         super(DQNAgent, self).__init__()
         # Define DQN Layers
         self.state_space = state_space
@@ -145,8 +145,12 @@ class DQNAgent:
             self.target_net.load_state_dict(torch.load(f"dq2-{run_id}.pt", map_location=torch.device(self.device)))
         
         self.lr = lr
+        self.lr_decay = lr_decay
         #self.optimizer = torch.optim.Adam(self.local_net.parameters(), lr=lr)
-        self.optimizer = torch.optim.AdamW(self.local_net, lr=self.lr)
+
+        self.optimizer = torch.optim.AdamW(self.local_net.parameters(), lr=self.lr)
+        self.scheduler = torch.optim.lr_scheduler.StepLR(self.optimizer, step_size=30, gamma=1-self.lr_decay)
+
         self.copy = 5000  # Copy the local model weights into the target network every 5000 steps
         self.step = 0
         self.max_time_per_ep = init_max_time
@@ -252,15 +256,21 @@ class DQNAgent:
         # Makes sure that exploration rate is always at least 'exploration min'
         self.exploration_rate = max(self.exploration_rate, self.exploration_min)
 
-    def decay_lr(self, lr_decay):
-        self.lr *= lr_decay
-        self.lr = max(self.lr, 0.000000001)
-        for g in self.optimizer.param_groups:
-            g['lr'] = self.lr
+    # def decay_lr(self, lr_decay):
+    #     self.lr *= lr_decay
+    #     self.lr = max(self.lr, 0.000000001)
+    #     for g in self.optimizer.param_groups:
+    #         g['lr'] = self.lr
 
-    def decay_lr_step(self, gam):
-        scheduler = torch.optim.lr_scheduler.StepLR(self.optimizer, step_size=30, gamma=gam)
-        scheduler.step()
+    # def decay_lr_gentle(self):
+    #     # typical LR decay from https://medium.com/analytics-vidhya/learning-rate-decay-and-methods-in-deep-learning-2cee564f910b
+    #     decay_rate = 1-self.lr_decay
+    #     1/(1 + decay_rate*self.step)*self.lr
+
+
+    # def decay_lr_step(self):
+
+    #     self.scheduler.step()
 
     def experience_replay(self, debug=False):
         
