@@ -265,7 +265,7 @@ def train(
                     })
 
 
-        agent.decay_lr(lr_decay)
+        agent.decay_lr_step(1-lr_decay)
         agent.decay_exploration()
         torch.cuda.empty_cache()
         

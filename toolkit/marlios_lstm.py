@@ -115,10 +115,9 @@ class DQNAgent:
 
     def __init__(self, action_space, max_memory_size, batch_size, gamma, lr, state_space,
                  dropout, exploration_max, exploration_min, exploration_decay, double_dq, pretrained, run_id='', n_actions = 64, device=None, init_max_time=500, hidden_shape=32):
-
+        super(DQNAgent, self).__init__()
         # Define DQN Layers
         self.state_space = state_space
-
         self.action_space = action_space # this will be a set of actions ie: a subset of TWO_ACTIONS in constants.py
         self.n_actions = n_actions # initial number of actions to sample
         if device == None:
@@ -146,7 +145,8 @@ class DQNAgent:
             self.target_net.load_state_dict(torch.load(f"dq2-{run_id}.pt", map_location=torch.device(self.device)))
         
         self.lr = lr
-        self.optimizer = torch.optim.Adam(self.local_net.parameters(), lr=lr)
+        #self.optimizer = torch.optim.Adam(self.local_net.parameters(), lr=lr)
+        self.optimizer = torch.optim.AdamW(self.local_net, lr=self.lr)
         self.copy = 5000  # Copy the local model weights into the target network every 5000 steps
         self.step = 0
         self.max_time_per_ep = init_max_time
@@ -257,6 +257,10 @@ class DQNAgent:
         self.lr = max(self.lr, 0.000000001)
         for g in self.optimizer.param_groups:
             g['lr'] = self.lr
+
+    def decay_lr_step(self, gam):
+        scheduler = torch.optim.lr_scheduler.StepLR(self.optimizer, step_size=30, gamma=gam)
+        scheduler.step()
 
     def experience_replay(self, debug=False):
         

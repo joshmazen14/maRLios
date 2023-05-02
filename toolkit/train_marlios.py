@@ -256,7 +256,7 @@ def train(
         
         
         # update the max time per episode every 1000 episodes
-        if ep_num % 500 == 0 and agent.max_time_per_ep < 450 and iteration>0:
+        if ep_num % 1000 == 0 and agent.max_time_per_ep < 450 and iteration>0:
             agent.max_time_per_ep += 50
 
         if training_mode and (ep_num % ep_per_stat) == 0 and ep_num != 0:
