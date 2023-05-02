@@ -151,7 +151,7 @@ class DQNAgent:
 
             # Updated for generalization:
 
-        self.subsample_actions() # Maybe change this to sample on each episode instead of each step
+        # self.subsample_actions() # Maybe change this to sample on each episode instead of each step
         results = self.local_net(state.to(self.device), self.cur_action_space).cpu()
         return torch.argmax(results, dim=1)
         # action = torch.tensor(self.cur_action_space[act_index])

@@ -411,6 +411,7 @@ def visualize(run_id, action_space, n_actions, lr=0.0001, exploration_min=0.02, 
 
         total_info.append(info)
         total_rewards.append(total_reward)
+        agent.subsample_actions()
 
         if log_stats:
             with open(f'visualized_rewards-{run_id}.txt', 'a') as f:
