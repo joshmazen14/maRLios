@@ -114,8 +114,14 @@ class DQNSolver(nn.Module):
 class DQNAgent:
 
     def __init__(self, action_space, max_memory_size, batch_size, gamma, lr, state_space,
-                 dropout, exploration_max, exploration_min, exploration_decay, double_dq, pretrained, lr_decay=0.99, run_id='', n_actions = 64, device=None, init_max_time=500, hidden_shape=32):
-        super(DQNAgent, self).__init__()
+                 dropout, exploration_max, exploration_min, exploration_decay, double_dq, pretrained, 
+                 lr_decay=0.99, run_id='', n_actions = 64, device=None, init_max_time=500, hidden_shape=32,
+                 training_stage = "train", add_sufficient = True
+                 ):
+        
+        self.training_stage = training_stage
+        self.add_sufficient = add_sufficient
+
         # Define DQN Layers
         self.state_space = state_space
         self.action_space = action_space # this will be a set of actions ie: a subset of TWO_ACTIONS in constants.py
@@ -157,14 +163,8 @@ class DQNAgent:
     
         # Create memory
         self.max_memory_size = max_memory_size
-        if self.pretrained:
-            with open(f"ending_position-{run_id}.pkl", 'rb') as f:
-                self.ending_position = pickle.load(f)
-            with open(f"num_in_queue-{run_id}.pkl", 'rb') as f:
-                self.num_in_queue = pickle.load(f)
-        else:
-            self.ending_position = 0
-            self.num_in_queue = 0
+        self.ending_position = 0
+        self.num_in_queue = 0
 
         self.STATE_MEM = torch.zeros(max_memory_size, *self.state_space)
         self.ACTION_MEM = torch.zeros(max_memory_size, 1) # this needs to be a matrix of the actual action taken
@@ -194,7 +194,9 @@ class DQNAgent:
         Changes curaction space to be a random sample of what it was
         '''
 
-        self.cur_action_space = torch.from_numpy(toolkit.action_utils.sample_actions(self.action_space, self.n_actions)).to(torch.float32).to(self.device).unsqueeze(0)
+        self.cur_action_space = torch.from_numpy(toolkit.action_utils.sample_actions(
+            self.action_space, self.n_actions, add_sufficient=self.add_sufficient, training_stage=self.training_stage)
+            ).to(torch.float32).to(self.device).unsqueeze(0)
     
 
 
