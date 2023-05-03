@@ -313,7 +313,7 @@ def train(
             total_info_val.append(info_val)
             avg_rewards_val.append(np.average(total_rewards_val[-ep_per_stat:]))
             avg_stdevs_val.append(np.std(total_rewards_val[-ep_per_stat:]))  
-            avg_completion_val.append(np.average([i['flag_get'] for i in total_info[-ep_per_stat:]]))
+            avg_completion_val.append(np.average([i['flag_get'] for i in total_info_val[-ep_per_stat:]]))
 
             wandb.log({
                 "total_rewards_validation": total_rewards_val[-1],
@@ -352,7 +352,7 @@ def validate_run(agent, env):
     while True:
         # agent.subsample_val_actions() # subsample actions every step
         two_actions_index = agent.act_validate(state)
-        two_actions_vector = agent.cur_action_space[0, two_actions_index[0]]
+        two_actions_vector = agent.cur_val_action_space[0, two_actions_index[0]]
         two_actions = vec_to_action(two_actions_vector.cpu()) # tuple of actions
         
         reward = 0
