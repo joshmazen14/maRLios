@@ -84,7 +84,7 @@ if __name__ == "__main__":
          n_actions=n_actions, # +2 for no-op and sufficient action
          run_id=args.run_id,
          hidden_shape=args.hidden_shape,
-         sample_actions=args.sample_actions,
+         add_sufficient=args.sample_actions,
          max_time_per_ep=args.max_time_per_ep,
          sample_step=args.sample_step
          )
