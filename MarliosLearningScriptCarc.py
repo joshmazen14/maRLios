@@ -15,6 +15,7 @@ import matplotlib.pyplot as plt
 import time
 import datetime
 import json
+import toolkit
 from toolkit.gym_env import *
 from toolkit.action_utils_carlos import *
 from toolkit.marlios_lstm_validation import *
@@ -57,7 +58,7 @@ if __name__ == "__main__":
     print('test: ', args)
 
     try:
-        action_space = getattr(train_test_samples, args.actions)
+        action_space = getattr(toolkit.train_test_samples, args.actions)
     except AttributeError as e:
         raise ValueError("Invalid actions argument.")
     
