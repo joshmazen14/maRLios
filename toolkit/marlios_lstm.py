@@ -10,6 +10,7 @@ import numpy as np
 import pickle 
 import numpy as np
 import toolkit.action_utils 
+from toolkit.train_test_samples import *
 
 torch.autograd.set_detect_anomaly(True)
 class DQNSolver(nn.Module):
@@ -116,7 +117,7 @@ class DQNAgent:
     def __init__(self, action_space, max_memory_size, batch_size, gamma, lr, state_space,
                  dropout, exploration_max, exploration_min, exploration_decay, double_dq, pretrained, 
                  lr_decay=0.99, run_id='', n_actions = 64, device=None, init_max_time=500, hidden_shape=32,
-                 training_stage = "train", add_sufficient = True
+                 training_stage = "train", add_sufficient = True, val_action_space=VALIDATION_SET
                  ):
         
         self.training_stage = training_stage
@@ -125,6 +126,7 @@ class DQNAgent:
         # Define DQN Layers
         self.state_space = state_space
         self.action_space = action_space # this will be a set of actions ie: a subset of TWO_ACTIONS in constants.py
+        self.val_action_space = val_action_space
         self.n_actions = n_actions # initial number of actions to sample
         if device == None:
             self.device ='cpu'
@@ -198,6 +200,13 @@ class DQNAgent:
             self.action_space, self.n_actions, add_sufficient=self.add_sufficient, training_stage=self.training_stage)
             ).to(torch.float32).to(self.device).unsqueeze(0)
     
+    def subsample_val_actions(self):
+        '''
+        Changes curaction space to be a random sample of what it was
+        '''
+        self.cur_val_action_space = torch.from_numpy(toolkit.action_utils.sample_actions(
+            self.val_action_space, self.n_actions, add_sufficient=self.add_sufficient, training_stage="validation")
+            ).to(torch.float32).to(self.device).unsqueeze(0)
 
 
     def remember(self, state, action, reward, state2, done, hidden_state):
@@ -246,6 +255,18 @@ class DQNAgent:
             ind = torch.tensor(rand_ind).unsqueeze(0) # wiht some probability, choose a random index
         
         return ind.cpu(), hidden
+    
+
+    def act_validate(self, state, prev_hidden_state):
+        '''
+        Returns the action vector
+        '''
+        # Epsilon-greedy action
+
+        self.subsample_val_actions() # Maybe change this to sample on each episode instead of each step
+        results, hidden = self.local_net(state.to(self.device), self.cur_val_action_space, prev_hidden_state)
+        
+        return torch.argmax(results, dim=1), hidden
 
     def copy_model(self):
         # Copy local net weights into target net
@@ -258,11 +279,11 @@ class DQNAgent:
         # Makes sure that exploration rate is always at least 'exploration min'
         self.exploration_rate = max(self.exploration_rate, self.exploration_min)
 
-    # def decay_lr(self, lr_decay):
-    #     self.lr *= lr_decay
-    #     self.lr = max(self.lr, 0.000000001)
-    #     for g in self.optimizer.param_groups:
-    #         g['lr'] = self.lr
+    def decay_lr(self, lr_decay):
+        self.lr *= lr_decay
+        self.lr = max(self.lr, 0.000000001)
+        for g in self.optimizer.param_groups:
+            g['lr'] = self.lr
 
     # def decay_lr_gentle(self):
     #     # typical LR decay from https://medium.com/analytics-vidhya/learning-rate-decay-and-methods-in-deep-learning-2cee564f910b

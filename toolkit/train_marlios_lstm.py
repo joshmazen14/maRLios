@@ -16,7 +16,7 @@ import time
 import datetime
 import json
 from toolkit.gym_env import *
-from toolkit.action_utils import *
+from toolkit.action_utils_carlos import *
 from toolkit.marlios_lstm import *
 from toolkit.constants import *
 import wandb
@@ -90,26 +90,6 @@ def train(
     # from looking at the model, time starts at 400
     time_total = 400 #seconds
     time_taken = 0 #seconds
-    if log:
-        wandb.init(
-            # set the wandb project where this run will be logged
-            project="my-awesome-project",
-        
-            # track hyperparameters and run metadata
-            config={
-            "name": name or run_id,
-            "run_id": run_id,
-            "lr": lr,
-            "lr_decay": lr_decay,
-            "exploration_decay": exploration_decay,
-            "n_actions": n_actions,
-            "gamma": gamma,
-            "episodes": num_episodes,
-            "ep_per_stat": ep_per_stat
-            }
-        )
-
-    
 
     # fh = open(f'progress-{run_id}.txt', 'a') # suppressing this for local runs
     env = gym.make(mario_env)
@@ -141,6 +121,26 @@ def train(
                      add_sufficient=add_sufficient
                      )
     
+    if log:
+        wandb.init(
+            # set the wandb project where this run will be logged
+            project="my-awesome-project",
+        
+            # track hyperparameters and run metadata
+            config={
+            "name": name or run_id,
+            "run_id": run_id,
+            "lr": lr,
+            "lr_decay": lr_decay,
+            "exploration_decay": exploration_decay,
+            "n_actions": n_actions,
+            "gamma": gamma,
+            "episodes": num_episodes,
+            "ep_per_stat": ep_per_stat,
+            "hidden_shape": hidden_shape,
+            "model_architecture": str(agent.local_net)
+            }
+        )
 
     # see if anyone can get this to work, i think it doesn't work on mps
     if device != 'mps' and log:
@@ -153,6 +153,12 @@ def train(
     avg_losses = [0]
     avg_rewards = [0]
     avg_stdevs = [0]
+    avg_completion = [0]
+    total_rewards_val = []
+    total_info_val = []
+    avg_stdevs_val = [0]
+    avg_rewards_val = [0]
+    avg_completion_val = [0]
 
     losses = []
     pid = os.getpid()
@@ -162,6 +168,7 @@ def train(
 
     if pretrained:
         total_rewards = load_item(from_file='total_rewards-{}.pkl'.format(run_id))
+        avg_losses = load_item(from_file='avg_loss-{}.pkl'.format(run_id))
         # total_losses = load_item(from_file='total_losses-{}.pkl'.format(run_id))
         # total_info = load_item(from_file='total_info-{}.pkl'.format(run_id))
     
@@ -204,6 +211,8 @@ def train(
                     step_action = ACTION_TO_INDEX[action]
 
                     state_next, cur_reward, terminal, info = env.step(step_action)
+                    if info["flag_get"] and terminal:
+                        cur_reward += 500
                     total_reward += cur_reward
                     reward += cur_reward
                     
@@ -218,7 +227,6 @@ def train(
             del hidden
 
             loss = agent.experience_replay(debug=debug)
-            agent.subsample_actions() # change up action space
 
             if loss != None:
                 losses.append(loss)
@@ -227,6 +235,7 @@ def train(
             if terminal or time_taken >= agent.max_time_per_ep:
                 break
 
+        agent.subsample_actions() # change up action space each episode
         total_info.append(info)
         total_rewards.append(total_reward)
         
@@ -237,7 +246,9 @@ def train(
         #     wandb.log({"average episode loss": avg_losses[-1]})
         # gather average reward per eg:100 episodes stat
         avg_rewards.append(np.average(total_rewards[-ep_per_stat:]))
-        avg_stdevs.append(np.std(total_rewards[-ep_per_stat:]))   
+        avg_stdevs.append(np.std(total_rewards[-ep_per_stat:]))
+        avg_completion.append(np.average([i['flag_get'] for i in total_info[-ep_per_stat:]]))
+  
        
         losses = []
 
@@ -258,7 +269,7 @@ def train(
             wandb.log({"total reward" : total_reward, 
                     "current lr": agent.lr,
                     "current exploration": agent.exploration_rate,
-                    "flag acquired": info['flag_get'],
+                    "Avg Completion Rate": avg_completion[-1],
                     "time": time_taken,
                     "x_position": info['x_pos'],
                     "avg_loss": avg_losses[-1],
@@ -268,9 +279,26 @@ def train(
                     })
 
 
-        #agent.decay_lr_step(1-lr_decay)
+        agent.decay_lr(lr_decay)
         agent.decay_exploration()
         torch.cuda.empty_cache()
+
+        # Run validation run every 10 episodes
+        if ep_num % 1 == 0 and ep_num != 0:
+            total_reward_val, info_val = validate_run(agent, env)
+            total_rewards_val.append(total_reward)
+            total_info_val.append(info_val)
+            avg_rewards_val.append(np.average(total_rewards_val[-ep_per_stat:]))
+            avg_stdevs_val.append(np.std(total_rewards_val[-ep_per_stat:]))  
+            avg_completion_val.append(np.average([i['flag_get'] for i in total_info[-ep_per_stat:]]))
+
+            if log:
+                wandb.log({
+                    "total_rewards_validation": total_rewards_val[-1],
+                    "avg_total_rewards_validation": avg_rewards_val[-1],
+                    "avg_std_dev_validation": avg_stdevs_val[-1],
+                    "Avg Completion Rate Validatiton": avg_completion_val[-1]
+                })
         
         # update the max time per episode every 1000 episodes
         if ep_num % 500 == 0 and agent.max_time_per_ep < 450 and iteration>0:
@@ -296,6 +324,43 @@ def train(
     if log:
         wandb.finish()
 
+def validate_run(agent, env):
+    state = env.reset() 
+    state = torch.Tensor([state])
+    total_reward = 0
+    
+    prev_hidden_state = None
+
+    while True:
+        two_actions_index = agent.act_validate(state, prev_hidden_state)
+        two_actions_vector = agent.cur_action_space[0, two_actions_index[0]]
+        two_actions = vec_to_action(two_actions_vector.cpu()) # tuple of actions
+        
+        reward = 0
+        info = None
+        terminal = False
+        for action in two_actions: 
+            if not terminal:
+                # compute index into ACTION_SPACE of our action
+                step_action = ACTION_TO_INDEX[action]
+
+                state_next, cur_reward, terminal, info = env.step(step_action)
+                if info["flag_get"] and terminal:
+                    cur_reward += 500
+                total_reward += cur_reward
+                reward += cur_reward
+                
+        state_next = torch.Tensor([state_next])
+        reward = torch.tensor([reward]).unsqueeze(0)        
+        terminal = torch.tensor([int(terminal)]).unsqueeze(0)
+        prev_hidden_state = hidden
+        del hidden
+
+        state = state_next
+        if terminal:
+            break
+
+    return total_reward, info
 
 
 def show_state(env, ep=0, info=""):
@@ -340,7 +405,9 @@ def visualize(run_id, action_space, n_actions, lr=0.0001, exploration_min=0.02, 
                      double_dq=True,
                      pretrained=True,
                      run_id=run_id,
-                     n_actions=n_actions)
+                     n_actions=n_actions,
+                     sample_actions=sample_actions,
+                     training_stage="test")
     
     
     # num_episodes = 10
