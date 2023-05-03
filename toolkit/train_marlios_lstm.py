@@ -82,7 +82,7 @@ def train(
         exploration_min=0.02, ep_per_stat = 100, exploration_max = 1, 
         lr_decay = 0.99, mario_env='SuperMarioBros-1-1-v0', action_space=TWO_ACTIONS_SET,
         num_episodes=1000, run_id=None, n_actions=20, debug = True, name=None, max_time_per_ep = 500, device=None, log=True, 
-        hidden_shape=32, add_sufficient = True, training_stage = "train"
+        hidden_shape=32, add_sufficient = True, sample_step=False
     ):
     
 
@@ -187,6 +187,10 @@ def train(
         mem_usage = process.memory_info().rss / (1024 ** 2) # in Mb
         # print(f"Memory usage at episode {ep_num}: {mem_usage:.2f} MB")
         while True:
+
+            if sample_step:
+                agent.subsample_actions() # subsample actions every step
+
             # lstm new
             two_actions_index, hidden = agent.act(state, prev_hidden_state)
             two_actions_vector = agent.cur_action_space[0, two_actions_index[0]]
@@ -240,8 +244,6 @@ def train(
         # if len(avg_losses):
         #     wandb.log({"average episode loss": avg_losses[-1]})
         # gather average reward per eg:100 episodes stat
-        
-        agent.subsample_actions() # change up action space each episode
         total_info.append(info)
         total_rewards.append(total_reward)
         avg_rewards.append(np.average(total_rewards[-ep_per_stat:]))
@@ -278,6 +280,8 @@ def train(
                     })
 
 
+        if not sample_step:
+            agent.subsample_actions() # change up action space each episode
         agent.decay_lr(lr_decay)
         agent.decay_exploration()
         torch.cuda.empty_cache()
