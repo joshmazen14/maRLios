@@ -117,7 +117,8 @@ def train(
         training_mode=True, pretrained=False, lr=0.0001, gamma=0.90, exploration_decay=0.995,
         exploration_min=0.02, ep_per_stat=100, exploration_max=1, sample_actions=True,
         lr_decay = 0.99, mario_env='SuperMarioBros-1-1-v0', action_space=TRAIN_SET,
-        num_episodes=1000, run_id=None, n_actions=20, debug = True, name=None, max_time_per_ep = 500, device=None
+        num_episodes=1000, run_id=None, n_actions=20, debug = True, name=None, max_time_per_ep = 500, device=None,
+        sample_step=False
     ):
     
 
@@ -212,7 +213,8 @@ def train(
             # if steps%100 == 0 and steps>0:
             #     agent.decay_exploration()
 
-            agent.subsample_actions() # subsample actions every step
+            if sample_step:
+                agent.subsample_actions() # subsample actions every step
             two_actions_index = agent.act(state)
             two_actions_vector = agent.cur_action_space[0, two_actions_index[0]]
             two_actions = vec_to_action(two_actions_vector.cpu()) # tuple of actions
@@ -302,7 +304,8 @@ def train(
 
         agent.decay_lr(lr_decay)
         agent.decay_exploration()
-        # agent.subsample_actions() # subsample actions every episode
+        if not sample_step:
+            agent.subsample_actions() # subsample actions every episode
 
         # Run validation run every 10 episodes
         if ep_num % 10 == 0 and ep_num != 0:
