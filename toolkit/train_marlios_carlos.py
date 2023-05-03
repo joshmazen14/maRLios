@@ -212,7 +212,7 @@ def train(
             # if steps%100 == 0 and steps>0:
             #     agent.decay_exploration()
 
-            # agent.subsample_actions() # subsample actions every step
+            agent.subsample_actions() # subsample actions every step
             two_actions_index = agent.act(state)
             two_actions_vector = agent.cur_action_space[0, two_actions_index[0]]
             two_actions = vec_to_action(two_actions_vector.cpu()) # tuple of actions
@@ -302,7 +302,7 @@ def train(
 
         agent.decay_lr(lr_decay)
         agent.decay_exploration()
-        agent.subsample_actions() # subsample actions every episode
+        # agent.subsample_actions() # subsample actions every episode
 
         # Run validation run every 10 episodes
         if ep_num % 10 == 0 and ep_num != 0:
