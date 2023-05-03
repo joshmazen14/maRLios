@@ -346,9 +346,9 @@ def validate_run(agent, env):
     state = env.reset() 
     state = torch.Tensor([state])
     total_reward = 0
-    agent.subsample_actions_validate() # subsample actions every episode
+    agent.subsample_val_actions() # subsample actions every episode
     while True:
-        # agent.subsample_actions_validate() # subsample actions every step
+        # agent.subsample_val_actions() # subsample actions every step
         two_actions_index = agent.act_validate(state)
         two_actions_vector = agent.cur_action_space[0, two_actions_index[0]]
         two_actions = vec_to_action(two_actions_vector.cpu()) # tuple of actions
