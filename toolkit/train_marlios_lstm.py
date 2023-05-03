@@ -124,7 +124,7 @@ def train(
         wandb.init(
             # set the wandb project where this run will be logged
             project="my-awesome-project",
-        
+            mode="offline",
             # track hyperparameters and run metadata
             config={
             "name": name or run_id,
