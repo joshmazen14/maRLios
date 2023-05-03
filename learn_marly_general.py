@@ -1,4 +1,5 @@
 import torch
+from torchvision import models
 import torch.nn as nn
 import random
 import gym
@@ -126,24 +127,6 @@ def main(training_mode=True, pretrained=False, lr=0.0001, gamma=0.90, exploratio
     env = gym.make(mario_env)
     env = make_env(env, ACTION_SPACE)
 
-    with open(f'parameters-{run_id}.txt', 'a') as f:
-
-        # write the parameter name and value to the file
-        f.write(f'training_mode={training_mode}\n')
-        f.write(f'pretrained={pretrained}\n')
-        f.write(f'lr={lr}\n')
-        f.write(f'gamma={gamma}\n')
-        f.write(f'exploration_decay={exploration_decay}\n')
-        f.write(f'exploration_min={exploration_min}\n')
-        f.write(f'ep_per_stat={ep_per_stat}\n')
-        f.write(f'exploration_max={exploration_max}\n')
-        f.write(f'mario_env={mario_env}\n')
-        f.write(f'action_space={action_space}\n')
-        f.write(f'num_episodes={num_episodes}\n')
-        f.write(f'run_id={run_id}\n')
-        f.write(f'n_actions={n_actions}\n')
-
-
     # observation_space = env.observation_space.shape # not using this anymore
 
     #todo: add agent params as a setting/create different agents in diff functions to run 
@@ -164,7 +147,24 @@ def main(training_mode=True, pretrained=False, lr=0.0001, gamma=0.90, exploratio
                      pretrained=pretrained,
                      run_id=run_id,
                      n_actions=n_actions)
-    
+
+    with open(f'parameters-{run_id}.txt', 'a') as f:
+
+        # write the parameter name and value to the file
+        f.write(f'training_mode={training_mode}\n')
+        f.write(f'pretrained={pretrained}\n')
+        f.write(f'lr={lr}\n')
+        f.write(f'gamma={gamma}\n')
+        f.write(f'exploration_decay={exploration_decay}\n')
+        f.write(f'exploration_min={exploration_min}\n')
+        f.write(f'ep_per_stat={ep_per_stat}\n')
+        f.write(f'exploration_max={exploration_max}\n')
+        f.write(f'mario_env={mario_env}\n')
+        f.write(f'action_space={action_space}\n')
+        f.write(f'num_episodes={num_episodes}\n')
+        f.write(f'run_id={run_id}\n')
+        f.write(f'n_actions={n_actions}\n')
+        f.write(str(agent.local_net))    
     
     # num_episodes = 10
     env.reset()
@@ -288,7 +288,8 @@ if __name__ == "__main__":
     if (not args.n_actions):
         n_actions = len(action_space) + 2
 
-
+    else:
+        n_actions = args.n_actions
 
     main(training_mode=args.training_mode,
          pretrained=args.pretrained,
