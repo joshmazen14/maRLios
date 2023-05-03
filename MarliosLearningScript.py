@@ -48,6 +48,7 @@ if __name__ == "__main__":
     parser.add_argument("--n-actions", type=int, default=None, help="Number of actions to to give to model (default: len(action_space))")
     parser.add_argument("--sample-actions", type=ast.literal_eval, default=False, help="Sample actions from action space (default: False)")
     parser.add_argument("--max-time-per-ep", type=float, default=200, help="Episode time limit to start training with  (default: 200)")
+    parser.add_argument("--sample-step", type=ast.literal_eval, default=False, help="If true, subsample on every step, otherwise on every episode  (default: False)")
 
     args = parser.parse_args()
     print('test: ', args)
@@ -79,7 +80,8 @@ if __name__ == "__main__":
          n_actions=n_actions, # +2 for no-op and sufficient action
          run_id=args.run_id,
          sample_actions=args.sample_actions,
-         max_time_per_ep=args.max_time_per_ep
+         max_time_per_ep=args.max_time_per_ep,
+         sample_step=args.sample_step
          )
     
 

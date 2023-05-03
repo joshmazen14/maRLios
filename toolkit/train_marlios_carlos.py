@@ -18,7 +18,6 @@ import json
 from toolkit.gym_env import *
 from toolkit.action_utils_carlos import *
 from toolkit.marlios_model_carlos import *
-from toolkit.swift_monkey import DQNSolver
 from toolkit.constants_carlos import *
 from toolkit.train_test_samples import *
 import wandb
@@ -117,7 +116,8 @@ def train(
         training_mode=True, pretrained=False, lr=0.0001, gamma=0.90, exploration_decay=0.995,
         exploration_min=0.02, ep_per_stat=100, exploration_max=1, sample_actions=True,
         lr_decay = 0.99, mario_env='SuperMarioBros-1-1-v0', action_space=TRAIN_SET,
-        num_episodes=1000, run_id=None, n_actions=20, debug = True, name=None, max_time_per_ep = 500, device=None
+        num_episodes=1000, run_id=None, n_actions=20, debug = True, name=None, max_time_per_ep = 500, device=None,
+        sample_step=False
     ):
     
 
@@ -212,6 +212,8 @@ def train(
             # if steps%100 == 0 and steps>0:
             #     agent.decay_exploration()
 
+            if sample_step:
+                agent.subsample_actions() # subsample actions every step
             two_actions_index = agent.act(state)
             two_actions_vector = agent.cur_action_space[0, two_actions_index[0]]
             two_actions = vec_to_action(two_actions_vector.cpu()) # tuple of actions
@@ -301,16 +303,17 @@ def train(
 
         agent.decay_lr(lr_decay)
         agent.decay_exploration()
-        # agent.subsample_actions()
+        if not sample_step:
+            agent.subsample_actions() # subsample actions every episode
 
         # Run validation run every 10 episodes
         if ep_num % 10 == 0 and ep_num != 0:
             total_reward_val, info_val = validate_run(agent, env)
-            total_rewards_val.append(total_reward)
+            total_rewards_val.append(total_reward_val)
             total_info_val.append(info_val)
             avg_rewards_val.append(np.average(total_rewards_val[-ep_per_stat:]))
             avg_stdevs_val.append(np.std(total_rewards_val[-ep_per_stat:]))  
-            avg_completion_val.append(np.average([i['flag_get'] for i in total_info[-ep_per_stat:]]))
+            avg_completion_val.append(np.average([i['flag_get'] for i in total_info_val[-ep_per_stat:]]))
 
             wandb.log({
                 "total_rewards_validation": total_rewards_val[-1],
@@ -345,9 +348,11 @@ def validate_run(agent, env):
     state = env.reset() 
     state = torch.Tensor([state])
     total_reward = 0
+    agent.subsample_val_actions() # subsample actions every episode
     while True:
+        # agent.subsample_val_actions() # subsample actions every step
         two_actions_index = agent.act_validate(state)
-        two_actions_vector = agent.cur_action_space[0, two_actions_index[0]]
+        two_actions_vector = agent.cur_val_action_space[0, two_actions_index[0]]
         two_actions = vec_to_action(two_actions_vector.cpu()) # tuple of actions
         
         reward = 0
@@ -424,7 +429,7 @@ def visualize(run_id, action_space, n_actions, lr=0.0001, exploration_min=0.02, 
 
         action_freq = {}
         while True:
-            agent.subsample_actions()
+            # agent.subsample_actions()
             show_state(env, ep_num)
 
             two_actions_index = agent.act(state)
@@ -464,7 +469,7 @@ def visualize(run_id, action_space, n_actions, lr=0.0001, exploration_min=0.02, 
 
         total_info.append(info)
         total_rewards.append(total_reward)
-        # agent.subsample_actions()
+        agent.subsample_actions()
 
         if log_stats:
             with open(f'visualized_rewards-{run_id}.txt', 'a') as f:
