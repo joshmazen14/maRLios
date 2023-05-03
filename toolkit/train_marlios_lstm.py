@@ -24,7 +24,7 @@ import psutil
 import os
 
 def make_env(env, actions=ACTION_SPACE):
-    env = MaxAndSkipEnv(env, skip=2) # I am testing out fewer fram repetitions for our two actions modelling
+    env = MaxAndSkipEnv(env, skip=2)
     env = ProcessFrame84(env)
     env = ImageToPyTorch(env)
     env = BufferWrapper(env, 4)
@@ -262,7 +262,7 @@ def train(
                     "time": time_taken,
                     "x_position": info['x_pos'],
                     "avg_loss": avg_losses[-1],
-                    "max_time_per_ep": max_time_per_ep,
+                    "max_time_per_ep": agent.max_time_per_ep,
                     "avg_total_rewards": avg_rewards[-1],
                     "avg_std_dev": avg_stdevs[-1]
                     })
@@ -273,7 +273,7 @@ def train(
         torch.cuda.empty_cache()
         
         # update the max time per episode every 1000 episodes
-        if ep_num % 500 == 0 and agent.max_time_per_ep < 450 and iteration>0:
+        if ep_num % 100 == 0 and agent.max_time_per_ep < 450 and iteration>0:
             agent.max_time_per_ep += 50
 
         if training_mode and (ep_num % ep_per_stat) == 0 and ep_num != 0:
@@ -309,7 +309,9 @@ def show_state(env, ep=0, info=""):
     # display.display(plt.gcf())
     display(plt.gcf(), clear=True)
 
-def visualize(run_id, action_space, n_actions, lr=0.0001, exploration_min=0.02, ep_per_stat = 100, exploration_max = 0.1, mario_env='SuperMarioBros-1-1-v0',  num_episodes=1000, log_stats = False, randomness = True):
+def visualize(run_id, action_space, n_actions, lr=0.0001, exploration_min=0.02, ep_per_stat = 100, exploration_max = 0.1, 
+              mario_env='SuperMarioBros-1-1-v0',  num_episodes=1000, log_stats = False, randomness = True,
+              add_sufficient = True, training_stage = "train"):
    
    
     fh = open(f'progress-{run_id}.txt', 'a')
@@ -340,7 +342,10 @@ def visualize(run_id, action_space, n_actions, lr=0.0001, exploration_min=0.02, 
                      double_dq=True,
                      pretrained=True,
                      run_id=run_id,
-                     n_actions=n_actions)
+                     n_actions=n_actions,  
+                     training_stage=training_stage,
+                     device='cpu',
+                     add_sufficient=add_sufficient)
     
     
     # num_episodes = 10
@@ -360,10 +365,12 @@ def visualize(run_id, action_space, n_actions, lr=0.0001, exploration_min=0.02, 
         while True:
 
             show_state(env, ep_num)
-
+            
             two_actions_index, hidden = agent.act(state, prev_hidden_state)
             two_actions_vector = agent.cur_action_space[0, two_actions_index[0]]
             two_actions = vec_to_action(two_actions_vector.cpu()) # tuple of actions
+
+            print(two_actions)
 
             # debugging info
             key = " | ".join([",".join(i) for i in two_actions])
