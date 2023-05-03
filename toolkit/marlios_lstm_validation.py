@@ -261,7 +261,7 @@ class DQNAgent:
         '''
         # Epsilon-greedy action
 
-        self.subsample_val_actions() # Maybe change this to sample on each episode instead of each step
+        #self.subsample_val_actions() # Maybe change this to sample on each episode instead of each step
         results, hidden = self.local_net(state.to(self.device), self.cur_val_action_space, prev_hidden_state)
         ind = torch.argmax(results, dim=1)
 

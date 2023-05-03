@@ -265,8 +265,9 @@ class DQNAgent:
 
         self.subsample_val_actions() # Maybe change this to sample on each episode instead of each step
         results, hidden = self.local_net(state.to(self.device), self.cur_val_action_space, prev_hidden_state)
-        
-        return torch.argmax(results, dim=1), hidden
+        ind = torch.argmax(results, dim=1)
+
+        return ind.cpu(), hidden
 
     def copy_model(self):
         # Copy local net weights into target net

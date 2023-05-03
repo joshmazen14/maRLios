@@ -17,8 +17,8 @@ import datetime
 import json
 from toolkit.gym_env import *
 from toolkit.action_utils_carlos import *
-from toolkit.marlios_lstm import *
-from toolkit.constants import *
+from toolkit.marlios_lstm_validation import *
+from toolkit.constants_carlos import *
 import wandb
 import psutil
 import os
@@ -117,8 +117,7 @@ def train(
                      device=device,
                      init_max_time=max_time_per_ep,
                      hidden_shape=hidden_shape,
-                     training_stage=training_stage,
-                     add_sufficient=add_sufficient
+                     sample_actions=add_sufficient
                      )
     
     if log:
@@ -234,10 +233,6 @@ def train(
             state = state_next
             if terminal or time_taken >= agent.max_time_per_ep:
                 break
-
-        agent.subsample_actions() # change up action space each episode
-        total_info.append(info)
-        total_rewards.append(total_reward)
         
         # Gather loss stats
         if len(losses):
@@ -245,6 +240,10 @@ def train(
         # if len(avg_losses):
         #     wandb.log({"average episode loss": avg_losses[-1]})
         # gather average reward per eg:100 episodes stat
+        
+        agent.subsample_actions() # change up action space each episode
+        total_info.append(info)
+        total_rewards.append(total_reward)
         avg_rewards.append(np.average(total_rewards[-ep_per_stat:]))
         avg_stdevs.append(np.std(total_rewards[-ep_per_stat:]))
         avg_completion.append(np.average([i['flag_get'] for i in total_info[-ep_per_stat:]]))
@@ -284,9 +283,9 @@ def train(
         torch.cuda.empty_cache()
 
         # Run validation run every 10 episodes
-        if ep_num % 1 == 0 and ep_num != 0:
+        if ep_num % 10 == 0 and ep_num != 0:
             total_reward_val, info_val = validate_run(agent, env)
-            total_rewards_val.append(total_reward)
+            total_rewards_val.append(total_reward_val)
             total_info_val.append(info_val)
             avg_rewards_val.append(np.average(total_rewards_val[-ep_per_stat:]))
             avg_stdevs_val.append(np.std(total_rewards_val[-ep_per_stat:]))  
@@ -328,11 +327,14 @@ def validate_run(agent, env):
     state = env.reset() 
     state = torch.Tensor([state])
     total_reward = 0
-    
+
+    agent.subsample_val_actions()
     prev_hidden_state = None
 
     while True:
-        two_actions_index = agent.act_validate(state, prev_hidden_state)
+        two_actions_index, hidden = agent.act_validate(state, prev_hidden_state)
+        # print(agent.cur_action_space[0, two_actions_index[0]].shape)
+        # print(agent.cur_val_action_space[0, two_actions_index[0]].shape)
         two_actions_vector = agent.cur_action_space[0, two_actions_index[0]]
         two_actions = vec_to_action(two_actions_vector.cpu()) # tuple of actions
         
@@ -469,6 +471,7 @@ def visualize(run_id, action_space, n_actions, lr=0.0001, exploration_min=0.02, 
 
         total_info.append(info)
         total_rewards.append(total_reward)
+        agent.subsample_actions_validate()
 
         if log_stats:
             with open(f'visualized_rewards-{run_id}.txt', 'a') as f:
