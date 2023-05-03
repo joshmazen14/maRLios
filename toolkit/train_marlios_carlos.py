@@ -424,7 +424,7 @@ def visualize(run_id, action_space, n_actions, lr=0.0001, exploration_min=0.02, 
 
         action_freq = {}
         while True:
-
+            agent.subsample_actions()
             show_state(env, ep_num)
 
             two_actions_index = agent.act(state)
@@ -464,7 +464,7 @@ def visualize(run_id, action_space, n_actions, lr=0.0001, exploration_min=0.02, 
 
         total_info.append(info)
         total_rewards.append(total_reward)
-        agent.subsample_actions()
+        # agent.subsample_actions()
 
         if log_stats:
             with open(f'visualized_rewards-{run_id}.txt', 'a') as f:
