@@ -17,7 +17,7 @@ import datetime
 import json
 from toolkit.gym_env import *
 from toolkit.action_utils import *
-from toolkit.marlios_lstm import *
+from toolkit.marlios_lstm_action import *
 from toolkit.constants import *
 import wandb
 import psutil
@@ -184,7 +184,8 @@ def train(
             two_actions_index, hidden = agent.act(state, prev_hidden_state)
             two_actions_vector = agent.cur_action_space[0, two_actions_index[0]]
             two_actions = vec_to_action(two_actions_vector.cpu()) # tuple of actions
-            hidden = hidden.detach()
+            hidden = (hidden[0].detach(), hidden[1].detach())
+            # hidden = hidden.detach()
 
             # debugging info
             key = " | ".join([",".join(i) for i in two_actions])
@@ -217,7 +218,7 @@ def train(
             del hidden
 
             loss = agent.experience_replay(debug=debug)
-            agent.subsample_actions() # change up action space
+            
 
             if loss != None:
                 losses.append(loss)
@@ -225,6 +226,9 @@ def train(
             state = state_next
             if terminal or time_taken >= agent.max_time_per_ep:
                 break
+
+        # change the action space
+        agent.subsample_actions()
 
         total_info.append(info)
         total_rewards.append(total_reward)
@@ -245,15 +249,6 @@ def train(
         # plot the line charts:
         time_taken = time_total - info["time"]
         
-        # if len(avg_rewards):
-        #     ub = [i + j for i, j in zip(avg_rewards, avg_stdevs)]
-        #     lb = [i - j for i, j in zip(avg_rewards, avg_stdevs)]
-            # wandb.log({"my_custom_id" : wandb.plot.line_series(
-            #             xs=[i for i in range(0, ep_num, ep_per_stat)], 
-            #             ys=[avg_rewards, ub, lb],
-            #             keys=["Avg Total Rewards", "upper std", "lower std"],
-            #             title="Avg Rewards per {} Episodes".format(ep_per_stat),
-            #             xname="episode ({}'s)".format(ep_per_stat))})
         if log:
             wandb.log({"total reward" : total_reward, 
                     "current lr": agent.lr,
@@ -273,7 +268,7 @@ def train(
         torch.cuda.empty_cache()
         
         # update the max time per episode every 1000 episodes
-        if ep_num % 100 == 0 and agent.max_time_per_ep < 450 and iteration>0:
+        if ep_num % 1000 == 0 and agent.max_time_per_ep < 450 and iteration>0:
             agent.max_time_per_ep += 50
 
         if training_mode and (ep_num % ep_per_stat) == 0 and ep_num != 0:
@@ -401,12 +396,13 @@ def visualize(run_id, action_space, n_actions, lr=0.0001, exploration_min=0.02, 
             # lstm new
             prev_hidden_state = hidden
             del hidden
-            agent.subsample_actions() # change up action space
+            # change up action space
             state = state_next
 
             if terminal:
                 break
 
+        agent.subsample_actions() 
         total_info.append(info)
         total_rewards.append(total_reward)
 

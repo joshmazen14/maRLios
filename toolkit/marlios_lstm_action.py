@@ -40,13 +40,12 @@ class DQNSolver(nn.Module):
                     init.xavier_uniform_(layer.weight)
 
         # self.rnn = nn.RNN(input_size=32, hidden_size=hidden_shape, batch_first=True)
-        self.rnn = nn.LSTM(input_size=32, hidden_size=hidden_shape, batch_first=True)
 
         action_size = 10
         self.action_fc = nn.Sequential(
             nn.Linear(action_size, 20),
             nn.LeakyReLU(), # if running the old rnn's this is just one layer deep (fc for action to hidden), but prob wont use them anymore
-            nn.Linear(20, hidden_shape),
+            nn.Linear(20, 32),
             nn.ReLU(),
         )
 
@@ -54,10 +53,12 @@ class DQNSolver(nn.Module):
         for layer in self.action_fc:
             if isinstance(layer, nn.Linear):
                 init.xavier_uniform_(layer.weight)
-        
+    
+        self.rnn = nn.LSTM(input_size=64, hidden_size=hidden_shape, batch_first=True)
+
         # We take a vector of 5 being the initial action, and 5 being the second action for action size of 10
         self.fc = nn.Sequential(
-            nn.Linear(2*hidden_shape, 32),
+            nn.Linear(hidden_shape, 32),
             nn.BatchNorm1d(n_actions), # using batch size of 64, for now hard coded
             nn.ReLU(),
             nn.Linear(32, 10), # added a new layer can play with the parameters
@@ -92,31 +93,32 @@ class DQNSolver(nn.Module):
 
         big_conv_out = self.conv(x).view(x.size()[0], -1) # has shape of (1, 1024) => (batch, output size)
         next_out = self.conv_to_rnn(big_conv_out)
-        del big_conv_out
-        # print(next_out.shape)
-        rnn_out, h_n,  = self.rnn(next_out.unsqueeze(1), (h_0, c_0))
-        # rnn_out, h_n,  = self.rnn(next_out.unsqueeze(1), h_0)
-        del next_out
+        batched_next_out = next_out.reshape(next_out.shape[0], 1, next_out.shape[-1]).repeat(1, sampled_actions.shape[-2], 1) # should have dim (n_batch, n_actions, output shape) 
+        latent_actions = self.action_fc(sampled_actions)
+        batched_actions = torch.cat((batched_next_out, latent_actions), dim=2)
 
-        # hidden state shape after batch:  torch.Size([1, 32, 32])
-        # rnn out shape:  torch.Size([32, 1, 32])
+        reshaped_to_rnn = batched_actions.reshape(batched_actions.shape[0]*batched_actions.shape[1], batched_actions.shape[-1]) # should have dim (n_batch * n_actions, output shape) 
+     
+   
+        sequence_length, batch_size, hidden_output_size = h_0.shape
+        h_0 = h_0.repeat(1, 1, sampled_actions.shape[-2]).reshape(sequence_length, batch_size*sampled_actions.shape[-2], hidden_output_size)
+        c_0 = c_0.repeat(1, 1, sampled_actions.shape[-2]).reshape(sequence_length, batch_size*sampled_actions.shape[-2], hidden_output_size)
+
+        
+        # also need to repeat 
+        rnn_out, (h_n, c_n)  = self.rnn(reshaped_to_rnn.unsqueeze(1), (h_0, c_0))
+
+        h_n = h_n.reshape(sequence_length, batch_size, sampled_actions.shape[-2], hidden_output_size)
+        c_n = c_n.reshape(sequence_length, batch_size, sampled_actions.shape[-2], hidden_output_size)
 
         rnn_out = rnn_out.squeeze(1) # remove the sequence length dimension
-        batched_rnn_out = rnn_out.reshape(rnn_out.shape[0], 1, rnn_out.shape[-1]).repeat(1, sampled_actions.shape[-2], 1)
-        # print(batched_rnn_out.shape)
-        del rnn_out
+   
+        rnn_out = rnn_out.reshape(batch_size, sampled_actions.shape[-2], hidden_output_size)
 
+        out =  torch.flatten(self.fc(rnn_out), start_dim=1)
+     
 
-        latent_actions = self.action_fc(sampled_actions)
-
-        batched_actions = torch.cat((batched_rnn_out, latent_actions), dim=2)
-        # print(batched_actions.shape)
-        del latent_actions
-
-        out =  torch.flatten(self.fc(batched_actions), start_dim=1)
-        del batched_actions
-
-        return out, h_n
+        return out, (h_n, c_n) #hidden has shape (seq length, batch, n_actions, hidden)
 
     
 
@@ -248,7 +250,15 @@ class DQNAgent:
             rand_ind = random.randrange(0, self.cur_action_space.shape[1])
             ind = torch.tensor(rand_ind).unsqueeze(0) # wiht some probability, choose a random index
         
-        return ind.cpu(), hidden
+        #hidden has shape (seq length, batch, n_actions, hidden)
+        hidden, cell = hidden
+
+        hidden = hidden[:, :, ind.long(), :]
+        cell = cell[:, :, ind.long(), :]
+
+        hidden, cell = hidden.squeeze(-2), cell.squeeze(-2) # now its shape should be  (1, batch, hidden)
+
+        return ind.cpu(), (hidden, cell)
 
     def copy_model(self):
         # Copy local net weights into target net
@@ -294,19 +304,16 @@ class DQNAgent:
         # current, HIDDEN2 = self.local_net(STATE, SPACE, HIDDEN)
 
         current = current.gather(1, ACTION.long()) # Local net approximation of Q-value
-
-        # print("Got current")
+        batch_indices = torch.arange(ACTION.shape[0]).unsqueeze(1)
+        HIDDEN2 = HIDDEN2[:, batch_indices, ACTION.long(), :].squeeze(-2)
+        CELL2 = CELL2[:, batch_indices, ACTION.long(), :].squeeze(-2)
     
         # target, _ = self.target_net(STATE2, SPACE, HIDDEN2)
         target, _ = self.target_net(STATE2, SPACE, (HIDDEN2, CELL2))
 
         target = REWARD + torch.mul((self.gamma * target.max(1).values.unsqueeze(1)), 1 - DONE)
-        # print("before loss")
         loss = self.l1(current, target) # maybe we can play with some L2 loss 
-        # print("before backward")
         loss.backward(retain_graph=False) # Compute gradients
-        # print("after backward")
         self.optimizer.step() # Backpropagate error
-        # print("stepped")
         if debug:
             return float(loss)
