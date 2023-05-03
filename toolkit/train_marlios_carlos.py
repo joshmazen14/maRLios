@@ -307,7 +307,7 @@ def train(
         # Run validation run every 10 episodes
         if ep_num % 10 == 0 and ep_num != 0:
             total_reward_val, info_val = validate_run(agent, env)
-            total_rewards_val.append(total_reward)
+            total_rewards_val.append(total_reward_val)
             total_info_val.append(info_val)
             avg_rewards_val.append(np.average(total_rewards_val[-ep_per_stat:]))
             avg_stdevs_val.append(np.std(total_rewards_val[-ep_per_stat:]))  
