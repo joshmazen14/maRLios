@@ -195,7 +195,8 @@ def train(
             two_actions_index, hidden = agent.act(state, prev_hidden_state)
             two_actions_vector = agent.cur_action_space[0, two_actions_index[0]]
             two_actions = vec_to_action(two_actions_vector.cpu()) # tuple of actions
-            hidden = hidden.detach()
+            hidden = hidden.detach() # for rnn
+            #hidden = (hidden[0].detach(), hidden[1].detach()) # lstm 
 
             # debugging info
             key = " | ".join([",".join(i) for i in two_actions])
