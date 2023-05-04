@@ -27,7 +27,7 @@ class DQNAgent:
     def __init__(self, action_space, max_memory_size, batch_size, gamma, lr, state_space,
                  dropout, exploration_max, exploration_min, exploration_decay, double_dq, pretrained,
                  run_id='', n_actions=32,  sample_actions=True, device=None, init_max_time=500,
-                 mode=action_utils.TRAIN, val_action_space=VALIDATION_SET, lr_min=0.00003):
+                 mode=action_utils.TRAIN, val_action_space=VALIDATION_SET, lr_min=0.00003, lr_decay=0.999):
         
         # super(DQNAgent, self).__init__()
 
@@ -40,7 +40,8 @@ class DQNAgent:
         self.n_actions = n_actions # initial number of actions to sample
         self.sample_suff_actions = sample_actions # whether to sample the sufficient actions or not
         self.min_lr = lr_min
-        self.lr_decay = (self.min_lr / lr) ** (2 / n_actions)
+        self.lr_decay = lr_decay
+        # self.lr_decay = (self.min_lr / lr) ** (2 / n_actions)
         # self.min_lr = lr * (lr_decay ** (n_actions / 2)) # minimum learning rate
 
         if device == None:

@@ -125,6 +125,7 @@ def train(
     # from looking at the model, time starts at 400
     time_total = 400 #seconds
     time_taken = 0 #seconds
+    lr_decay = (lr_min / lr) ** (2 / num_episodes)
 
     # fh = open(f'progress-{run_id}.txt', 'a') # suppressing this for local runs
     env = gym.make(mario_env)
@@ -151,7 +152,8 @@ def train(
                      device=device,
                      init_max_time=max_time_per_ep,
                      sample_actions=sample_actions,
-                     lr_min=lr_min
+                     lr_min=lr_min,
+                     lr_decay=lr_decay
                      )
 
     wandb.init(
