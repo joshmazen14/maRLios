@@ -213,6 +213,9 @@ def train(
             time_taken = time_total - info["time"]
         
             agent.remember(state, two_actions_index, reward, state_next, terminal, hidden)
+            # change the action space
+            agent.subsample_actions()
+            
             # lstm new
             prev_hidden_state = hidden
             del hidden
@@ -227,8 +230,7 @@ def train(
             if terminal or time_taken >= agent.max_time_per_ep:
                 break
 
-        # change the action space
-        agent.subsample_actions()
+        
 
         total_info.append(info)
         total_rewards.append(total_reward)
