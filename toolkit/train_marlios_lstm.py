@@ -302,7 +302,7 @@ def train(
             time_per_ep.append(max_time_per_ep)
             x_position.append(info['x_pos'])
 
-            if iteration % 1 == 0:
+            if iteration % 20 == 0:
                 save_training_data(
                     {   "total_reward" : total_rewards,
                         "current lr": current_lr,
