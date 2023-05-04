@@ -124,7 +124,7 @@ def train(
         wandb.init(
             # set the wandb project where this run will be logged
             project="my-awesome-project",
-            mode="offline",
+            mode="online",
             # track hyperparameters and run metadata
             config={
             "name": name or run_id,
@@ -293,7 +293,7 @@ def train(
             total_info_val.append(info_val)
             avg_rewards_val.append(np.average(total_rewards_val[-ep_per_stat:]))
             avg_stdevs_val.append(np.std(total_rewards_val[-ep_per_stat:]))  
-            avg_completion_val.append(np.average([i['flag_get'] for i in total_info[-ep_per_stat:]]))
+            avg_completion_val.append(np.average([i['flag_get'] for i in total_info_val[-ep_per_stat:]]))
 
             if log:
                 wandb.log({
@@ -337,9 +337,7 @@ def validate_run(agent, env):
 
     while True:
         two_actions_index, hidden = agent.act_validate(state, prev_hidden_state)
-        # print(agent.cur_action_space[0, two_actions_index[0]].shape)
-        # print(agent.cur_val_action_space[0, two_actions_index[0]].shape)
-        two_actions_vector = agent.cur_action_space[0, two_actions_index[0]]
+        two_actions_vector = agent.cur_val_action_space[0, two_actions_index[0]]
         two_actions = vec_to_action(two_actions_vector.cpu()) # tuple of actions
         
         reward = 0
