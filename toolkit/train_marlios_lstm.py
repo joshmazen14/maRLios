@@ -126,6 +126,20 @@ def train(
                      sample_actions=add_sufficient
                      )
     
+    config={
+        "name": name or run_id,
+        "run_id": run_id,
+        "lr": lr,
+        "lr_decay": lr_decay,
+        "exploration_decay": exploration_decay,
+        "n_actions": n_actions,
+        "gamma": gamma,
+        "episodes": num_episodes,
+        "ep_per_stat": ep_per_stat,
+        "hidden_shape": hidden_shape,
+        "model_architecture": str(agent.local_net)
+        }
+
     if log:
         wandb.init(
             # set the wandb project where this run will be logged
@@ -148,6 +162,9 @@ def train(
     else:
         outdir = os.path.join(os.getcwd(), "_".join([name, run_id]))
         os.mkdir(outdir)
+
+        with open(os.path.join(outdir, f"params-{run_id}.txt"), "w") as f:
+            f.write(str(config))
 
         current_lr = []
         current_exploration = []
