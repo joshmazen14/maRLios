@@ -27,7 +27,7 @@ class DQNAgent:
     def __init__(self, action_space, max_memory_size, batch_size, gamma, lr, state_space,
                  dropout, exploration_max, exploration_min, exploration_decay, double_dq, pretrained,
                  run_id='', n_actions=32,  sample_actions=True, device=None, init_max_time=500,
-                 mode=action_utils.TRAIN, val_action_space=VALIDATION_SET, lr_decay=0.9999):
+                 mode=action_utils.TRAIN, val_action_space=VALIDATION_SET, lr_min=0.00003):
         
         # super(DQNAgent, self).__init__()
 
@@ -39,7 +39,9 @@ class DQNAgent:
         self.val_action_space = val_action_space # this will be a set of actions ie: a subset of TWO_ACTIONS in constants.py
         self.n_actions = n_actions # initial number of actions to sample
         self.sample_suff_actions = sample_actions # whether to sample the sufficient actions or not
-        self.min_lr = lr * (lr_decay ** (n_actions / 2)) # minimum learning rate
+        self.min_lr = lr_min
+        self.lr_decay = (self.min_lr / lr) ** (2 / n_actions)
+        # self.min_lr = lr * (lr_decay ** (n_actions / 2)) # minimum learning rate
 
         if device == None:
             self.device = 'cpu'
@@ -188,8 +190,8 @@ class DQNAgent:
         # Makes sure that exploration rate is always at least 'exploration min'
         self.exploration_rate = max(self.exploration_rate, self.exploration_min)
 
-    def decay_lr(self, lr_decay):
-        self.lr *= lr_decay
+    def decay_lr(self):
+        self.lr *= self.lr_decay
         self.lr = max(self.lr, self.min_lr)
         for g in self.optimizer.param_groups:
             g['lr'] = self.lr

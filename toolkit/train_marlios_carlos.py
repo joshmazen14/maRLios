@@ -115,9 +115,9 @@ def plot_loss(ep_per_stat=100, avg_loss=[], from_file=None):
 def train(
         training_mode=True, pretrained=False, lr=0.0001, gamma=0.90, exploration_decay=0.995,
         exploration_min=0.02, ep_per_stat=100, exploration_max=1, sample_actions=True,
-        lr_decay = 0.99, mario_env='SuperMarioBros-1-1-v0', action_space=TRAIN_SET,
-        num_episodes=1000, run_id=None, n_actions=20, debug = True, name=None, max_time_per_ep = 500, device=None,
-        sample_step=False
+        mario_env='SuperMarioBros-1-1-v0', action_space=TRAIN_SET, num_episodes=1000,
+        run_id=None, n_actions=20, debug = True, name=None, max_time_per_ep = 500,
+        device=None, sample_step=False, lr_min=0.00001
     ):
     
 
@@ -151,7 +151,7 @@ def train(
                      device=device,
                      init_max_time=max_time_per_ep,
                      sample_actions=sample_actions,
-                     lr_decay=lr_decay
+                     lr_min=lr_min
                      )
 
     wandb.init(
@@ -164,7 +164,8 @@ def train(
             "run_id": run_id,
             "model_architecture": str(agent.local_net),
             "lr": lr,
-            "lr_decay": lr_decay,
+            "lr_decay": agent.lr_decay,
+            "min_lr": agent.min_lr,
             "exploration_decay": exploration_decay,
             "n_actions": n_actions,
             "gamma": gamma,
@@ -303,7 +304,7 @@ def train(
                    })
 
 
-        agent.decay_lr(lr_decay)
+        agent.decay_lr()
         agent.decay_exploration()
         if not sample_step:
             agent.subsample_actions() # subsample actions every episode
