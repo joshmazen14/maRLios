@@ -36,19 +36,25 @@ def generate_epoch_time_id():
     return str(epoch_time)
 
 def save_checkpoint(agent, total_rewards, terminal_info, run_id):
-    with open(f"ending_position-{run_id}.pkl", "wb") as f:
-        pickle.dump(agent.ending_position, f)
-    with open(f"num_in_queue-{run_id}.pkl", "wb") as f:
-        pickle.dump(agent.num_in_queue, f)
-    with open(f"total_rewards-{run_id}.pkl", "wb") as f:
-        pickle.dump(total_rewards, f)
-    with open(f"terminal_info-{run_id}.pkl", "wb") as f:
-        pickle.dump(terminal_info, f)
+    # with open(f"ending_position-{run_id}.pkl", "wb") as f:
+    #     pickle.dump(agent.ending_position, f)
+    # with open(f"num_in_queue-{run_id}.pkl", "wb") as f:
+    #     pickle.dump(agent.num_in_queue, f)
+    # with open(f"total_rewards-{run_id}.pkl", "wb") as f:
+    #     pickle.dump(total_rewards, f)
+    # with open(f"terminal_info-{run_id}.pkl", "wb") as f:
+    #     pickle.dump(terminal_info, f)
     if agent.double_dq:
         torch.save(agent.local_net.state_dict(), f"dq1-{run_id}.pt")
         torch.save(agent.target_net.state_dict(), f"dq2-{run_id}.pt")
     else:
         torch.save(agent.dqn.state_dict(), f"dq-{run_id}.pt")  
+
+def save_training_data(data, outdir):
+
+    for name, list in data.items():
+        with open(os.path.join(outdir, f"{name}-{run_id}.pkl"), "wb") as f:
+            pickle.dump(list, f)
 
 def load_item(from_file):
      with open(from_file, 'rb') as f:
@@ -139,6 +145,15 @@ def train(
             "model_architecture": str(agent.local_net)
             }
         )
+    else:
+        outdir = os.path.join(os.getcwd(), "_".join([name, run_id]))
+        os.mkdir(outdir)
+
+        current_lr = []
+        current_exploration = []
+        final_time = []
+        x_position = []
+        time_per_ep = []
 
     # see if anyone can get this to work, i think it doesn't work on mps
     if device != 'mps' and log:
@@ -152,6 +167,7 @@ def train(
     avg_rewards = [0]
     avg_stdevs = [0]
     avg_completion = [0]
+
     total_rewards_val = []
     total_info_val = []
     avg_stdevs_val = [0]
@@ -278,6 +294,29 @@ def train(
                     "avg_total_rewards": avg_rewards[-1],
                     "avg_std_dev": avg_stdevs[-1]
                     })
+        else:
+
+            current_lr.append(agent.lr)
+            current_exploration(agent.exploration_rate)
+            final_time.append(time_taken)
+            time_per_ep.append(max_time_per_ep)
+            x_position.append(info['x_pos'])
+
+            if iteration % 1 == 0:
+                save_training_data(
+                    {   "total_reward" : total_rewards,
+                        "current lr": current_lr,
+                        "current exploration": current_exploration,
+                        "Avg Completion Rate": avg_completion,
+                        "total_time": final_time,
+                        "x_position": x_position,
+                        "avg_loss": avg_losses,
+                        "max_time_per_ep": time_per_ep,
+                        "avg_total_rewards": avg_rewards,
+                        "avg_std_dev": avg_stdevs
+                        },
+                    outdir=outdir
+                )
 
 
         if not sample_step:
@@ -301,6 +340,14 @@ def train(
                     "avg_total_rewards_validation": avg_rewards_val[-1],
                     "avg_std_dev_validation": avg_stdevs_val[-1],
                     "Avg Completion Rate Validatiton": avg_completion_val[-1]
+                })
+            else:
+                save_training_data({
+                    "total_rewards_validation": total_rewards_val,
+                    "total_info_val" : total_info_val,
+                    "avg_total_rewards_validation": avg_rewards_val,
+                    "avg_std_dev_validation": avg_stdevs_val,
+                    "Avg Completion Rate Validatiton": avg_completion_val
                 })
         
         # update the max time per episode every 1000 episodes
