@@ -82,7 +82,7 @@ def train(
         exploration_min=0.02, ep_per_stat = 100, exploration_max = 1, 
         lr_decay = 0.99, mario_env='SuperMarioBros-1-1-v0', action_space=TWO_ACTIONS_SET,
         num_episodes=1000, run_id=None, n_actions=20, debug = True, name=None, max_time_per_ep = 500, device=None, log=True, 
-        hidden_shape=32, add_sufficient = True, training_stage = "train"
+        hidden_shape=32, add_sufficient = True, training_stage = "train", validate_every = 50,
     ):
     
     
@@ -150,9 +150,14 @@ def train(
     env.reset()
     total_rewards = []
     total_info = []
+    completion = []
     avg_losses = [0]
     avg_rewards = [0]
     avg_stdevs = [0]
+
+    #validation stats
+    total_validation_rewards = []
+    val_completion = []
 
     losses = []
     pid = os.getpid()
@@ -234,6 +239,7 @@ def train(
         
 
         total_info.append(info)
+        completion.append(1 if info['flag_get'] else 0)
         total_rewards.append(total_reward)
         
         # Gather loss stats
@@ -246,9 +252,8 @@ def train(
             avg_rewards.append(np.average(total_rewards[-avg_period:]))
             avg_stdevs.append(np.std(total_rewards[-avg_period:]))   
        
+
         losses = []
-
-
         # plot the line charts:
         time_taken = time_total - info["time"]
         
@@ -262,7 +267,9 @@ def train(
                     "avg_loss": avg_losses[-1],
                     "max_time_per_ep": agent.max_time_per_ep,
                     "avg_total_rewards": avg_rewards[-1],
-                    "avg_std_dev": avg_stdevs[-1]
+                    "avg_std_dev": avg_stdevs[-1],
+                    "Avg Completion Rate": np.mean(completion),
+                    "cumulative completions": sum(completion),
                     })
 
 
@@ -270,6 +277,14 @@ def train(
         agent.decay_exploration()
         torch.cuda.empty_cache()
         
+        # check to see if we need to do a validation run:
+        if ep_num%validate_every == 0 and iteration > 0:
+            stats = validate_run(agent, "val", env)
+            val_completion.append(stats['flag_get'])
+            total_validation_rewards.append(stats['total_reward'])
+            # log the actual stats
+
+
         # update the max time per episode every 1000 episodes
         if ep_num % 1000 == 0 and agent.max_time_per_ep < 450 and iteration>0:
             agent.max_time_per_ep += 50
@@ -309,7 +324,7 @@ def show_state(env, ep=0, info=""):
 
 def visualize(run_id, action_space, n_actions, lr=0.0001, exploration_min=0.02, ep_per_stat = 100, exploration_max = 0.1, 
               mario_env='SuperMarioBros-1-1-v0',  num_episodes=1000, log_stats = False, randomness = True,
-              add_sufficient = True, training_stage = "train"):
+              add_sufficient = True, training_stage = "train", sample_every='action'):
    
    
     fh = open(f'progress-{run_id}.txt', 'a')
@@ -396,7 +411,8 @@ def visualize(run_id, action_space, n_actions, lr=0.0001, exploration_min=0.02, 
             
             
             agent.remember(state, two_actions_index, reward, state_next, terminal, hidden)
-            agent.subsample_actions()
+            if sample_every == 'action':
+                agent.subsample_actions()
             # lstm new
             prev_hidden_state = hidden
             del hidden
@@ -409,6 +425,8 @@ def visualize(run_id, action_space, n_actions, lr=0.0001, exploration_min=0.02, 
         #agent.subsample_actions() 
         total_info.append(info)
         total_rewards.append(total_reward)
+        if sample_every != 'action':
+            agent.subsample_actions()
 
         if log_stats:
             with open(f'visualized_rewards-{run_id}.txt', 'a') as f:
@@ -484,5 +502,7 @@ def validate_run(agent, training_stage, env):
         "total_reward" : total_reward,
         "flag_get" : info['flag_get']
     }
+
+    return stats_gathered
 
 
