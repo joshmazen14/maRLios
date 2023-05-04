@@ -85,6 +85,7 @@ def train(
         hidden_shape=32, add_sufficient = True, training_stage = "train"
     ):
     
+    
 
     run_id = run_id or generate_epoch_time_id()
     # from looking at the model, time starts at 400
@@ -215,7 +216,7 @@ def train(
             agent.remember(state, two_actions_index, reward, state_next, terminal, hidden)
             # change the action space
             agent.subsample_actions()
-            
+
             # lstm new
             prev_hidden_state = hidden
             del hidden
@@ -395,6 +396,7 @@ def visualize(run_id, action_space, n_actions, lr=0.0001, exploration_min=0.02, 
             
             
             agent.remember(state, two_actions_index, reward, state_next, terminal, hidden)
+            agent.subsample_actions()
             # lstm new
             prev_hidden_state = hidden
             del hidden
@@ -404,7 +406,7 @@ def visualize(run_id, action_space, n_actions, lr=0.0001, exploration_min=0.02, 
             if terminal:
                 break
 
-        agent.subsample_actions() 
+        #agent.subsample_actions() 
         total_info.append(info)
         total_rewards.append(total_reward)
 
@@ -428,3 +430,59 @@ def visualize(run_id, action_space, n_actions, lr=0.0001, exploration_min=0.02, 
     
     if num_episodes > ep_per_stat:
         plot_rewards(ep_per_stat=ep_per_stat, total_rewards=total_rewards)
+
+
+def validate_run(agent, training_stage, env):
+
+    old_training_stage = agent.training_stage
+    agent.training_stage = training_stage
+    
+    state = env.reset() # take the final dimension of shape 
+    state = torch.Tensor([state])
+    total_reward = 0
+    info = None
+    prev_hidden_state = None
+
+    while True:
+        
+        two_actions_index, hidden = agent.act(state, prev_hidden_state)
+        two_actions_vector = agent.cur_action_space[0, two_actions_index[0]]
+        two_actions = vec_to_action(two_actions_vector.cpu()) # tuple of actions
+        
+        reward = 0
+
+        terminal = False
+        for action in two_actions: 
+            if not terminal:
+                # compute index into ACTION_SPACE of our action
+                step_action = ACTION_TO_INDEX[action]
+
+                state_next, cur_reward, terminal, info = env.step(step_action)
+                total_reward += cur_reward
+                reward += cur_reward
+                
+        state_next = torch.Tensor([state_next])
+        reward = torch.tensor([reward]).unsqueeze(0)        
+        terminal = torch.tensor([int(terminal)]).unsqueeze(0)
+        
+        agent.subsample_actions()
+        # lstm new
+        prev_hidden_state = hidden
+        del hidden
+        # change up action space
+        state = state_next
+        if terminal:
+            break
+
+    # need to track
+    #avg total rewards validation
+    # avg completion rate validation
+    # avg std dev validation
+    # total rewards validation
+    # avg completion rate
+    stats_gathered = {
+        "total_reward" : total_reward,
+        "flag_get" : info['flag_get']
+    }
+
+
