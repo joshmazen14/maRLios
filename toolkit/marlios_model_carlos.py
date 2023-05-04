@@ -16,7 +16,8 @@ import numpy as np
 # import cv2
 # import matplotlib.pyplot as plt
 import toolkit.action_utils_carlos as action_utils
-# from toolkit.swift_monkey import DQNSolver
+# from trained_models.generalization.baseline_like_carlos import DQNSolver
+# from trained_models.generalization.tusken_parsec import DQNSolver
 from toolkit.next_model_carlos import DQNSolver
 from toolkit.train_test_samples import *
     
@@ -25,7 +26,8 @@ class DQNAgent:
 
     def __init__(self, action_space, max_memory_size, batch_size, gamma, lr, state_space,
                  dropout, exploration_max, exploration_min, exploration_decay, double_dq, pretrained,
-                 run_id='', n_actions=32,  sample_actions=True, device=None, init_max_time=500, mode=action_utils.TRAIN, val_action_space=VALIDATION_SET):
+                 run_id='', n_actions=32,  sample_actions=True, device=None, init_max_time=500,
+                 mode=action_utils.TRAIN, val_action_space=VALIDATION_SET, lr_decay=0.9999):
         
         # super(DQNAgent, self).__init__()
 
@@ -37,6 +39,7 @@ class DQNAgent:
         self.val_action_space = val_action_space # this will be a set of actions ie: a subset of TWO_ACTIONS in constants.py
         self.n_actions = n_actions # initial number of actions to sample
         self.sample_suff_actions = sample_actions # whether to sample the sufficient actions or not
+        self.min_lr = lr * (lr_decay ** (n_actions / 2)) # minimum learning rate
 
         if device == None:
             self.device = 'cpu'
@@ -187,7 +190,7 @@ class DQNAgent:
 
     def decay_lr(self, lr_decay):
         self.lr *= lr_decay
-        self.lr = max(self.lr, 1e-6)
+        self.lr = max(self.lr, self.min_lr)
         for g in self.optimizer.param_groups:
             g['lr'] = self.lr
     

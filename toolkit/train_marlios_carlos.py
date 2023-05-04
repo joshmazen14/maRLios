@@ -150,7 +150,8 @@ def train(
                      n_actions=n_actions,
                      device=device,
                      init_max_time=max_time_per_ep,
-                     sample_actions=sample_actions
+                     sample_actions=sample_actions,
+                     lr_decay=lr_decay
                      )
 
     wandb.init(
@@ -189,6 +190,7 @@ def train(
     avg_stdevs_val = [0]
     avg_rewards_val = [0]
     avg_completion_val = [0]
+    ep_per_stat_val = ep_per_stat / 10
 
     losses = []
     if pretrained:
@@ -311,9 +313,9 @@ def train(
             total_reward_val, info_val = validate_run(agent, env)
             total_rewards_val.append(total_reward_val)
             total_info_val.append(info_val)
-            avg_rewards_val.append(np.average(total_rewards_val[-ep_per_stat:]))
-            avg_stdevs_val.append(np.std(total_rewards_val[-ep_per_stat:]))  
-            avg_completion_val.append(np.average([i['flag_get'] for i in total_info_val[-ep_per_stat:]]))
+            avg_rewards_val.append(np.average(total_rewards_val[-ep_per_stat_val:]))
+            avg_stdevs_val.append(np.std(total_rewards_val[-ep_per_stat_val:]))  
+            avg_completion_val.append(np.average([i['flag_get'] for i in total_info_val[-ep_per_stat_val:]]))
 
             wandb.log({
                 "total_rewards_validation": total_rewards_val[-1],
@@ -436,7 +438,7 @@ def visualize(run_id, action_space, n_actions, lr=0.0001, exploration_min=0.02, 
             two_actions_vector = agent.cur_action_space[0, two_actions_index[0]]
             two_actions = vec_to_action(two_actions_vector.cpu()) # tuple of actions
             
-            # print(two_actions)
+            print(two_actions)
 
             # debugging info
             key = " | ".join([",".join(i) for i in two_actions])
