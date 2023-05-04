@@ -49,7 +49,7 @@ if __name__ == "__main__":
     parser.add_argument("--max-time-per-ep", type=float, default=200, help="Episode time limit to start training with  (default: 200)")
     parser.add_argument("--sample-step", type=ast.literal_eval, default=False, help="If true, subsample on every step, otherwise on every episode  (default: False)")
     
-    parser.add_argument("--name", type=str, default=False, help="Name of this run")
+    parser.add_argument("--name", type=str, default="", help="Name of this run")
     parser.add_argument("--log", type=ast.literal_eval, default=True, help="If true, keep a log")
     parser.add_argument("--hidden-shape", type=int, default=32, help="The shape of hidden cell, used for lstm only")
 
@@ -87,6 +87,7 @@ if __name__ == "__main__":
          add_sufficient=args.sample_actions,
          max_time_per_ep=args.max_time_per_ep,
          sample_step=args.sample_step,
+         name=args.name,
          log=args.log
          )
     

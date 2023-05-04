@@ -50,7 +50,7 @@ def save_checkpoint(agent, total_rewards, terminal_info, run_id):
     else:
         torch.save(agent.dqn.state_dict(), f"dq-{run_id}.pt")  
 
-def save_training_data(data, outdir):
+def save_training_data(data, run_id, outdir):
 
     for name, list in data.items():
         with open(os.path.join(outdir, f"{name}-{run_id}.pkl"), "wb") as f:
@@ -297,7 +297,7 @@ def train(
         else:
 
             current_lr.append(agent.lr)
-            current_exploration(agent.exploration_rate)
+            current_exploration.append(agent.exploration_rate)
             final_time.append(time_taken)
             time_per_ep.append(max_time_per_ep)
             x_position.append(info['x_pos'])
@@ -308,13 +308,14 @@ def train(
                         "current lr": current_lr,
                         "current exploration": current_exploration,
                         "Avg Completion Rate": avg_completion,
-                        "total_time": final_time,
+                        "time": final_time,
                         "x_position": x_position,
                         "avg_loss": avg_losses,
                         "max_time_per_ep": time_per_ep,
                         "avg_total_rewards": avg_rewards,
                         "avg_std_dev": avg_stdevs
                         },
+                    run_id=run_id,
                     outdir=outdir
                 )
 
@@ -348,7 +349,9 @@ def train(
                     "avg_total_rewards_validation": avg_rewards_val,
                     "avg_std_dev_validation": avg_stdevs_val,
                     "Avg Completion Rate Validatiton": avg_completion_val
-                })
+                },
+                outdir=outdir,
+                run_id=run_id)
         
         # update the max time per episode every 1000 episodes
         if ep_num % 500 == 0 and agent.max_time_per_ep < 450 and iteration>0:
