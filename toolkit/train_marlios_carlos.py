@@ -191,7 +191,7 @@ def train(
     avg_stdevs_val = [0]
     avg_rewards_val = [0]
     avg_completion_val = [0]
-    ep_per_stat_val = ep_per_stat / 10
+    ep_per_stat_val = ep_per_stat // 10
 
     losses = []
     if pretrained:
