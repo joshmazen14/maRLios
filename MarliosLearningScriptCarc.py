@@ -86,7 +86,8 @@ if __name__ == "__main__":
          hidden_shape=args.hidden_shape,
          add_sufficient=args.sample_actions,
          max_time_per_ep=args.max_time_per_ep,
-         sample_step=args.sample_step
+         sample_step=args.sample_step,
+         log=args.log
          )
     
 
