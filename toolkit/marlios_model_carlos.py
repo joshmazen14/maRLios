@@ -1,4 +1,4 @@
-from __future__ import absolute_import
+#from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
@@ -17,8 +17,8 @@ import numpy as np
 # import matplotlib.pyplot as plt
 import toolkit.action_utils_carlos as action_utils
 # from trained_models.generalization.baseline_like_carlos import DQNSolver
-# from trained_models.generalization.tusken_parsec import DQNSolver
-from toolkit.next_model_carlos import DQNSolver
+from trained_models.generalization.still_gliitter_peachy_microwave import DQNSolver
+#from toolkit.next_model_carlos import DQNSolver
 from toolkit.train_test_samples import *
     
 

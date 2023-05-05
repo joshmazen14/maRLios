@@ -30,23 +30,23 @@ class DQNSolver(nn.Module):
         self.conv_to_fc = nn.Sequential(
             nn.Linear(conv_out_size, 512),
             nn.LeakyReLU(),
-            nn.Linear(512, 80),
+            nn.Linear(512, 32),
             nn.LeakyReLU()
         )
 
         # We take a vector of 5 being the initial action, and 5 being the second action for action size of 10
         self.actions_fc = nn.Sequential(
             # nn.Linear(self.action_size, 100),
-            nn.Linear(self.action_size, 20),
+            nn.Linear(self.action_size, 32),
             nn.LeakyReLU(),
-            nn.Linear(20, 20),
-            nn.LeakyReLU(),
+            # nn.Linear(20, 20),
+            # nn.LeakyReLU(),
             # nn.ReLU()
         )
         self.fc = nn.Sequential(
             # nn.Linear(conv_out_size + 100, 512),
-            nn.Linear(80 + 20, 32),
-            # nn.BatchNorm1d(32),
+            nn.Linear(64, 32),
+            nn.BatchNorm1d(32),
             nn.LeakyReLU(),
             # nn.Linear(128, 32), # added a new layer can play with the parameters
             # nn.BatchNorm1d(32),
