@@ -213,7 +213,7 @@ def train(
         steps = 0
 
         action_freq = {}
-        prev_hidden_state = None
+        prev_hidden_state = torch.zeros(1, 1, agent.hidden_shape).to(device)
 
         # Get the memory usage in MB
         mem_usage = process.memory_info().rss / (1024 ** 2) # in Mb
@@ -257,7 +257,7 @@ def train(
             terminal = torch.tensor([int(terminal)]).unsqueeze(0)
             time_taken = time_total - info["time"]
         
-            agent.remember(state, two_actions_index, reward, state_next, terminal, hidden)
+            agent.remember(state, two_actions_index, reward, state_next, terminal, prev_hidden_state)
             # lstm new
             prev_hidden_state = hidden
             del hidden

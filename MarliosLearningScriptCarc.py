@@ -18,8 +18,10 @@ import json
 import toolkit
 from toolkit.gym_env import *
 from toolkit.action_utils_carlos import *
-from toolkit.marlios_lstm_validation import *
-from toolkit.train_marlios_lstm import *
+#from toolkit.marlios_lstm_validation import *
+#from toolkit.train_marlios_lstm import *
+from toolkit.marlios_model_carlos import *
+from toolkit.train_marlios_carlos_carc import *
 from toolkit.constants_carlos import *
 from toolkit.train_test_samples import *
 import argparse
@@ -57,8 +59,11 @@ if __name__ == "__main__":
     args = parser.parse_args()
     print('test: ', args)
 
+## for generalization:
+    # try:
+    #     action_space = getattr(toolkit.train_test_samples, args.actions)
     try:
-        action_space = getattr(toolkit.train_test_samples, args.actions)
+        action_space = getattr(toolkit.constants_carlos, args.actions)
     except AttributeError as e:
         raise ValueError("Invalid actions argument.")
     
@@ -83,12 +88,32 @@ if __name__ == "__main__":
          num_episodes=args.num_episodes,
          n_actions=n_actions, # +2 for no-op and sufficient action
          run_id=args.run_id,
-         hidden_shape=args.hidden_shape,
-         add_sufficient=args.sample_actions,
+         sample_actions=args.sample_actions,
          max_time_per_ep=args.max_time_per_ep,
          sample_step=args.sample_step,
          name=args.name,
          log=args.log
          )
     
-
+## LSTM version
+    # train(training_mode=args.training_mode,
+    #      pretrained=args.pretrained,
+    #      ep_per_stat=args.ep_stat,
+    #      lr=args.lr,
+    #      lr_decay=args.lr_decay,
+    #      gamma=args.gamma,
+    #      exploration_decay=args.exploration_decay,
+    #      exploration_min=args.exploration_min,
+    #      exploration_max=args.exploration_max,
+    #      mario_env=args.mario_env,
+    #      action_space=action_space,
+    #      num_episodes=args.num_episodes,
+    #      n_actions=n_actions, # +2 for no-op and sufficient action
+    #      run_id=args.run_id,
+    #      hidden_shape=args.hidden_shape,
+    #      add_sufficient=args.sample_actions,
+    #      max_time_per_ep=args.max_time_per_ep,
+    #      sample_step=args.sample_step,
+    #      name=args.name,
+    #      log=args.log
+    #      )

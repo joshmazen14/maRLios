@@ -20,7 +20,7 @@ class DQNSolver(nn.Module):
         super(DQNSolver, self).__init__()
         self.conv = nn.Sequential(
             nn.Conv2d(input_shape[0], 64, kernel_size=8, stride=4),
-            nn.AvgPool2d(kernel_size=3, stride=1),
+            #nn.AvgPool2d(kernel_size=3, stride=1),
             nn.LeakyReLU(),
             nn.Conv2d(64, 64, kernel_size=6, stride=4),
             nn.LeakyReLU()
@@ -40,8 +40,8 @@ class DQNSolver(nn.Module):
                 if isinstance(layer, nn.Linear):
                     init.xavier_uniform_(layer.weight)
 
-        self.rnn = nn.RNN(input_size=32, hidden_size=hidden_shape, batch_first=True)
-        # self.LSTM = nn.LSTM(input_size=32, hidden_size=hidden_shape, batch_first=True)
+        self.rnn = nn.GRU(input_size=32, hidden_size=hidden_shape, batch_first=False)
+        #self.LSTM = nn.LSTM(input_size=32, hidden_size=hidden_shape, batch_first=False)
 
         action_size = 10
         self.action_fc = nn.Sequential(
@@ -57,7 +57,7 @@ class DQNSolver(nn.Module):
         # We take a vector of 5 being the initial action, and 5 being the second action for action size of 10
         self.fc = nn.Sequential(
             nn.Linear(2*hidden_shape, 32),
-            nn.BatchNorm1d(n_actions), # using batch size of 64, for now hard coded
+            #nn.BatchNorm1d(n_actions), # using batch size of 64, for now hard coded
             nn.ReLU(),
             nn.Linear(32, 10), # added a new layer can play with the parameters
             nn.ReLU(),
@@ -89,24 +89,19 @@ class DQNSolver(nn.Module):
             h_0 = prev_hidden_state 
 
         big_conv_out = self.conv(x).view(x.size()[0], -1) # has shape of (1, 1024) => (batch, output size)
-        next_out = self.conv_to_rnn(big_conv_out)
-        del big_conv_out
+        next_out = self.conv_to_rnn(big_conv_out) # shape [N_batch, conv_out]
         
-        rnn_out, h_n,  = self.rnn(next_out.unsqueeze(1), h_0)
-        del next_out
+        rnn_out, h_n  = self.rnn(next_out.unsqueeze(0), h_0) # input next_out should have [1, N_batch, conv_out]
 
-        rnn_out = rnn_out.squeeze(1) # remove the sequence length dimension
+        rnn_out = rnn_out.squeeze(0) # remove the sequence length dimension
         batched_rnn_out = rnn_out.reshape(rnn_out.shape[0], 1, rnn_out.shape[-1]).repeat(1, sampled_actions.shape[-2], 1)
-        del rnn_out
-
+        #batched_rnn_out = rnn_out.repeat(1, sampled_actions.shape[-2], 1)
 
         latent_actions = self.action_fc(sampled_actions)
 
         batched_actions = torch.cat((batched_rnn_out, latent_actions), dim=2)
-        del latent_actions
 
         out =  torch.flatten(self.fc(batched_actions), start_dim=1)
-        del batched_actions
 
         return out, h_n
 
@@ -124,6 +119,7 @@ class DQNAgent:
         self.state_space = state_space
         self.mode = mode
 
+        self.hidden_shape = hidden_shape
         self.action_space = action_space # this will be a set of actions ie: a subset of TWO_ACTIONS in constants.py
         self.val_action_space = val_action_space
         self.n_actions = n_actions # initial number of actions to sample
@@ -235,7 +231,7 @@ class DQNAgent:
         HIDDEN = self.HIDDEN_MEM[idx]
         # CELL = self.CELL_MEM[idx]
         
-        return STATE, ACTION, REWARD, STATE2, DONE, SPACE, HIDDEN.transpose(0, 1).detach() #, CELL.transpose(0, 1).detach()
+        return STATE, ACTION, REWARD, STATE2, DONE, SPACE, HIDDEN.reshape(1, HIDDEN.shape[0], HIDDEN.shape[-1]) #, CELL.transpose(0, 1).detach()
 
     def act(self, state, prev_hidden_state):
         '''
@@ -246,6 +242,7 @@ class DQNAgent:
         # increment step
         self.step += 1
         results, hidden = self.local_net(state.to(self.device), self.cur_action_space, prev_hidden_state)
+        #print(results)
         ind = torch.argmax(results, dim=1) # index of the 'best' action
 
         if random.random() < self.exploration_rate:  
