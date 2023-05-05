@@ -23,6 +23,7 @@ from toolkit.train_test_samples import *
 import wandb
 import time
 import warnings
+import plotly.graph_objs as go
 
 warnings.filterwarnings('ignore')
 
@@ -309,6 +310,26 @@ def train(
             #             title="Avg Rewards per {} Episodes".format(ep_per_stat),
             #             xname="episode ({}'s)".format(ep_per_stat))})
             
+        # Create a stacked bar chart using Plotly
+        data_episode_action_count = [go.Bar(x=[str(key) for key in episode_action_count.keys()], y=list(episode_action_count.values()), name="Actions")]
+        data_cumul_act_dist = [go.Bar(x=[str(key) for key in cumulative_action_count.keys()], y=list(cumulative_action_count.values()), name="Actions")]
+
+        layout_episode_action_count = go.Layout(
+            title="Cumulative Action Distribution",
+            xaxis=dict(title="Episode"),
+            yaxis=dict(title="Count"),
+            barmode="stack"
+        )
+        layout_cumul_act_dist = go.Layout(
+            title="Cumulative Action Distribution",
+            xaxis=dict(title="Episode"),
+            yaxis=dict(title="Count"),
+            barmode="stack"
+        )
+
+        fig_episode_action_count = go.Figure(data=data_episode_action_count, layout=layout_episode_action_count)
+        fig_cumul_act_dist = go.Figure(data=data_cumul_act_dist, layout=layout_cumul_act_dist)
+
         wandb.log({"total reward" : total_reward, 
                    "current lr": agent.lr,
                    "current exploration": agent.exploration_rate,
@@ -320,11 +341,8 @@ def train(
                    "avg_total_rewards": avg_rewards[-1],
                    "avg_std_dev": avg_stdevs[-1],
                    # Log action distribution at the end of the episode
-                    "action_distribution": wandb.plot.bar(
-                        sizes=list(episode_action_count.values()),
-                        labels=list(episode_action_count.keys()),
-                        title="Action Distribution"
-                    )
+                    "cumulative_action_distribution": fig_cumul_act_dist,
+                    "episode_action_distribution": fig_episode_action_count,
                    })
         
         # Log cumulative action distribution at the end of the episode
