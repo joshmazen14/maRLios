@@ -102,7 +102,7 @@ def train(
     agent = DQNAgent(
                      state_space=env.observation_space.shape,
                      action_space=action_space,
-                     max_memory_size=20000,
+                     max_memory_size=30000,
                      batch_size=n_actions,
                      gamma=gamma,
                      lr=lr,
@@ -112,13 +112,13 @@ def train(
                      exploration_decay=exploration_decay,
                      double_dq=True,
                      pretrained=pretrained,
-                     lr_decay=lr_decay,
                      run_id=run_id,
                      n_actions=n_actions,
                      device=device,
                      init_max_time=max_time_per_ep,
                      hidden_shape=hidden_shape,
-                     sample_actions=add_sufficient
+                     training_stage=training_stage,
+                     add_sufficient=add_sufficient
                      )
 
     wandb.init(
