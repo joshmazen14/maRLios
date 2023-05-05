@@ -161,7 +161,6 @@ if __name__ == "__main__":
         action_space=TRAIN_SET,
         n_actions=32,
         debug=True,
-        device='mps',
         max_time_per_ep=100, # limit runs to a fewer seconds,
         log =True,
         add_sufficient=True,
