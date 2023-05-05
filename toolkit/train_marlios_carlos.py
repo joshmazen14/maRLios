@@ -136,7 +136,7 @@ def train(
     exploration_max = min(1, max(exploration_max, exploration_min))
 
     # Convert the actions to tuples of tuples
-    action_set_tuples = [tuple(map(tuple, action)) for action in action_space]
+    action_set_tuples = " | ".join([",".join(action) for action in action_space])
 
     # Initialize a dictionary to store the cumulative action count
     cumulative_action_count = {}
