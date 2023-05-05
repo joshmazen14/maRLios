@@ -144,6 +144,7 @@ def train(
     # Count the occurrences of each unique action
     for action in action_set_tuples:
         cumulative_action_count[action] = 0
+        episode_action_count[action] = 0
 
     agent = DQNAgent(
                      state_space=env.observation_space.shape,
