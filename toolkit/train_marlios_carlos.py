@@ -140,12 +140,11 @@ def train(
 
     # Initialize a dictionary to store the cumulative action count
     cumulative_action_count = {}
-    episode_action_count = {}
 
     # Count the occurrences of each unique action
     for action in action_set_tuples:
         cumulative_action_count[action] = 0
-        episode_action_count[action] = 0
+        # episode_action_count[action] = 0
 
     agent = DQNAgent(
                      state_space=env.observation_space.shape,
@@ -237,11 +236,16 @@ def train(
             two_actions = vec_to_action(two_actions_vector.cpu()) # tuple of actions
 
             # debugging info
-            key = " | ".join([",".join(i) for i in two_actions])
-            if key in action_freq:
-                action_freq[key] += 1
+            action_key = " | ".join([",".join(i) for i in two_actions])
+            if action_key in action_freq:
+                action_freq[action_key] += 1
             else:
-                action_freq[key] = 1
+                action_freq[action_key] = 1
+            # update action count
+            if action_key in cumulative_action_count:
+                cumulative_action_count[action_key] += 1
+            else:
+                cumulative_action_count[action_key] = 1
             
             steps += 1
             reward = 0
@@ -263,9 +267,6 @@ def train(
             terminal = torch.tensor([int(terminal)]).unsqueeze(0)
             time_taken = time_total - info["time"]
             
-            # update action count
-            cumulative_action_count[two_actions] += 1
-            episode_action_count[two_actions] += 1
         
             agent.remember(state, two_actions_index, reward, state_next, terminal)
             loss = agent.experience_replay(debug=debug)
@@ -311,7 +312,7 @@ def train(
             #             xname="episode ({}'s)".format(ep_per_stat))})
             
         # Create a stacked bar chart using Plotly
-        data_episode_action_count = [go.Bar(x=[str(key) for key in episode_action_count.keys()], y=list(episode_action_count.values()), name="Actions")]
+        data_episode_action_count = [go.Bar(x=[str(key) for key in action_freq.keys()], y=list(action_freq.values()), name="Actions")]
         data_cumul_act_dist = [go.Bar(x=[str(key) for key in cumulative_action_count.keys()], y=list(cumulative_action_count.values()), name="Actions")]
 
         layout_episode_action_count = go.Layout(
