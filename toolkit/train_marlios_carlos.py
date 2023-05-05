@@ -134,6 +134,17 @@ def train(
     #todo: add agent params as a setting/create different agents in diff functions to run 
     exploration_max = min(1, max(exploration_max, exploration_min))
 
+    # Convert the actions to tuples of tuples
+    action_set_tuples = [tuple(map(tuple, action)) for action in action_space]
+
+    # Initialize a dictionary to store the cumulative action count
+    cumulative_action_count = {}
+    episode_action_count = {}
+
+    # Count the occurrences of each unique action
+    for action in action_set_tuples:
+        cumulative_action_count[action] = 0
+
     agent = DQNAgent(
                      state_space=env.observation_space.shape,
                      action_space=action_space,
@@ -249,6 +260,10 @@ def train(
             reward = torch.tensor([reward]).unsqueeze(0)        
             terminal = torch.tensor([int(terminal)]).unsqueeze(0)
             time_taken = time_total - info["time"]
+            
+            # update action count
+            cumulative_action_count[action] += 1
+            episode_action_count[action] += 1
         
             agent.remember(state, two_actions_index, reward, state_next, terminal)
             loss = agent.experience_replay(debug=debug)
@@ -304,6 +319,24 @@ def train(
                    "avg_total_rewards": avg_rewards[-1],
                    "avg_std_dev": avg_stdevs[-1],
                    })
+        
+        # Log cumulative action distribution at the end of the episode
+        wandb.log({
+            "cumulative_action_distribution": wandb.plot.stacked_bar(
+                chart_id="cumulative_action_distribution",
+                keys=list(cumulative_action_count.keys()),
+                values=list(cumulative_action_count.values()),
+                title="Cumulative Action Distribution",
+                xlabel="Episode",
+                ylabel="Count"
+            ),
+            # Log action distribution at the end of the episode
+            "action_distribution": wandb.plot.bar(
+                sizes=list(episode_action_count.values()),
+                labels=list(episode_action_count.keys()),
+                title="Action Distribution"
+            )
+        })
 
 
         agent.decay_lr()
