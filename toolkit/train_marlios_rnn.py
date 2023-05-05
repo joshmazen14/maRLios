@@ -91,26 +91,6 @@ def train(
     # from looking at the model, time starts at 400
     time_total = 400 #seconds
     time_taken = 0 #seconds
-    if log:
-        wandb.init(
-            # set the wandb project where this run will be logged
-            project="my-awesome-project",
-        
-            # track hyperparameters and run metadata
-            config={
-            "name": name or run_id,
-            "run_id": run_id,
-            "lr": lr,
-            "lr_decay": lr_decay,
-            "exploration_decay": exploration_decay,
-            "n_actions": n_actions,
-            "gamma": gamma,
-            "episodes": num_episodes,
-            "ep_per_stat": ep_per_stat
-            }
-        )
-
-    
 
     # fh = open(f'progress-{run_id}.txt', 'a') # suppressing this for local runs
     env = gym.make(mario_env)
@@ -122,7 +102,7 @@ def train(
     agent = DQNAgent(
                      state_space=env.observation_space.shape,
                      action_space=action_space,
-                     max_memory_size=30000,
+                     max_memory_size=20000,
                      batch_size=n_actions,
                      gamma=gamma,
                      lr=lr,
@@ -132,15 +112,33 @@ def train(
                      exploration_decay=exploration_decay,
                      double_dq=True,
                      pretrained=pretrained,
+                     lr_decay=lr_decay,
                      run_id=run_id,
                      n_actions=n_actions,
                      device=device,
                      init_max_time=max_time_per_ep,
                      hidden_shape=hidden_shape,
-                     training_stage=training_stage,
-                     add_sufficient=add_sufficient
+                     sample_actions=add_sufficient
                      )
-    
+
+    wandb.init(
+            # set the wandb project where this run will be logged
+            project="my-awesome-project",
+            # track hyperparameters and run metadata
+            config={
+            "name": name or run_id,
+            "run_id": run_id,
+            "lr": lr,
+            "lr_decay": lr_decay,
+            "exploration_decay": exploration_decay,
+            "n_actions": n_actions,
+            "gamma": gamma,
+            "episodes": num_episodes,
+            "ep_per_stat": ep_per_stat,
+            "hidden_shape": hidden_shape,
+            "model_architecture": str(agent.local_net)
+            }
+        )
 
     # see if anyone can get this to work, i think it doesn't work on mps
     if device != 'mps' and log:

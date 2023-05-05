@@ -54,7 +54,7 @@ if __name__ == "__main__":
     
     parser.add_argument("--name", type=str, default="", help="Name of this run")
     parser.add_argument("--log", type=ast.literal_eval, default=True, help="If true, keep a log")
-    parser.add_argument("--hidden-shape", type=int, default=32, help="The shape of hidden cell, used for lstm only")
+    parser.add_argument("--hidden-shape", type=int, default=64, help="The shape of hidden cell, used for lstm only")
 
 
     args = parser.parse_args()
@@ -119,19 +119,45 @@ if __name__ == "__main__":
 #          log=args.log
 #          )
     
-    # Cameron's RNN
+    # # Cameron's RNN
+    # train(
+    #     name=args.name,
+    #     training_mode=args.training_mode, 
+    #     pretrained=args.pretrained, # use the pretrained model
+    #     ep_per_stat=args.ep_stat,
+    #     lr=args.lr,
+    #     lr_decay=args.lr_decay,
+    #     gamma=args.gamma,
+    #     exploration_decay=args.exploration_decay,
+    #     exploration_min=args.exploration_min,
+    #     exploration_max=args.exploration_max,
+    #     mario_env=args.mario_env,
+    #     action_space=action_space,
+    #     num_episodes=args.num_episodes,
+    #     n_actions=n_actions, 
+    #     run_id=args.run_id,
+    #     hidden_shape=args.hidden_shape,
+    #     add_sufficient=args.sample_actions,
+    #     max_time_per_ep=args.max_time_per_ep,
+    #     sample_step=args.sample_step,
+    #     name=args.name,
+    #     log=args.log,
+    #     validate_every=10,
+    #     )
+    
+
     train(
         name=args.name,
-        training_mode=args.training_mode, 
-        pretrained=args.pretrained, # use the pretrained model
+        training_mode=True, 
+        pretrained=False, # use the pretrained model
         ep_per_stat=100, 
         gamma=0.9,
-        num_episodes=args.num_episodes,
-        lr=1e-4, 
-        lr_decay= 1.0, # experimenting with no lr decay
+        num_episodes=10,
+        lr=args.lr,
+        lr_decay=args.lr_decay, # experimenting with no lr decay
         exploration_min=0.02,
         exploration_max = 1, # setting this to the min for the rerun model
-        exploration_decay=0.99, 
+        exploration_decay=0.995, 
         action_space=TRAIN_SET,
         n_actions=32,
         debug=True,
