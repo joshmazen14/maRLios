@@ -170,7 +170,9 @@ def train(
         "n_actions": n_actions,
         "gamma": gamma,
         "episodes": num_episodes,
-        "ep_per_stat": ep_per_stat
+        "ep_per_stat": ep_per_stat,
+        "sample_step" : sample_step,
+        "sample_actions" : sample_actions
         }
     
     if log:

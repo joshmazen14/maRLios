@@ -35,7 +35,7 @@ if __name__ == "__main__":
     parser.add_argument("--training-mode", type=ast.literal_eval, default=True, help="Training mode (default: True)")
     parser.add_argument("--pretrained", type=ast.literal_eval, default=False, help="Use pretrained model (default: False)")
     parser.add_argument("--lr", type=float, default=0.00025, help="Learning rate (default: 0.00025)")
-    parser.add_argument("--lr-decay", type=float, default=0.999, help="Learning rate decay (default: 0.999)")
+    parser.add_argument("--lr-min", type=float, default=0.0001, help="Learning rate min (default: 0.0001)")
     parser.add_argument("--gamma", type=float, default=0.90, help="Discount factor (default: 0.90)")
     parser.add_argument("--exploration-decay", type=float, default=0.99, help="Exploration decay (default: 0.99)")
     parser.add_argument("--exploration-min", type=float, default=0.02, help="Exploration minimum (default: 0.02)")
@@ -69,7 +69,7 @@ if __name__ == "__main__":
          pretrained=args.pretrained,
          ep_per_stat=args.ep_stat,
          lr=args.lr,
-         lr_decay=args.lr_decay,
+         lr_min=args.lr_min,
          gamma=args.gamma,
          exploration_decay=args.exploration_decay,
          exploration_min=args.exploration_min,

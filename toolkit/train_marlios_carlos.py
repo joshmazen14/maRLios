@@ -115,9 +115,9 @@ def plot_loss(ep_per_stat=100, avg_loss=[], from_file=None):
 def train(
         training_mode=True, pretrained=False, lr=0.0001, gamma=0.90, exploration_decay=0.995,
         exploration_min=0.02, ep_per_stat=100, exploration_max=1, sample_actions=True,
-        lr_decay = 0.99, mario_env='SuperMarioBros-1-1-v0', action_space=TRAIN_SET,
-        num_episodes=1000, run_id=None, n_actions=20, debug = True, name=None, max_time_per_ep = 500, device=None,
-        sample_step=False
+        mario_env='SuperMarioBros-1-1-v0', action_space=TRAIN_SET, num_episodes=1000,
+        run_id=None, n_actions=20, debug = True, name=None, max_time_per_ep = 500,
+        device=None, sample_step=False, lr_min=0.00001
     ):
     
 
@@ -125,6 +125,7 @@ def train(
     # from looking at the model, time starts at 400
     time_total = 400 #seconds
     time_taken = 0 #seconds
+    lr_decay = (lr_min / lr) ** (2 / num_episodes)
 
     # fh = open(f'progress-{run_id}.txt', 'a') # suppressing this for local runs
     env = gym.make(mario_env)
@@ -150,7 +151,9 @@ def train(
                      n_actions=n_actions,
                      device=device,
                      init_max_time=max_time_per_ep,
-                     sample_actions=sample_actions
+                     sample_actions=sample_actions,
+                     lr_min=lr_min,
+                     lr_decay=lr_decay
                      )
 
     wandb.init(
@@ -163,7 +166,8 @@ def train(
             "run_id": run_id,
             "model_architecture": str(agent.local_net),
             "lr": lr,
-            "lr_decay": lr_decay,
+            "lr_decay": agent.lr_decay,
+            "min_lr": agent.min_lr,
             "exploration_decay": exploration_decay,
             "n_actions": n_actions,
             "gamma": gamma,
@@ -189,6 +193,7 @@ def train(
     avg_stdevs_val = [0]
     avg_rewards_val = [0]
     avg_completion_val = [0]
+    ep_per_stat_val = ep_per_stat // 10
 
     losses = []
     if pretrained:
@@ -301,7 +306,7 @@ def train(
                    })
 
 
-        agent.decay_lr(lr_decay)
+        agent.decay_lr()
         agent.decay_exploration()
         if not sample_step:
             agent.subsample_actions() # subsample actions every episode
@@ -311,9 +316,9 @@ def train(
             total_reward_val, info_val = validate_run(agent, env)
             total_rewards_val.append(total_reward_val)
             total_info_val.append(info_val)
-            avg_rewards_val.append(np.average(total_rewards_val[-ep_per_stat:]))
-            avg_stdevs_val.append(np.std(total_rewards_val[-ep_per_stat:]))  
-            avg_completion_val.append(np.average([i['flag_get'] for i in total_info_val[-ep_per_stat:]]))
+            avg_rewards_val.append(np.average(total_rewards_val[-ep_per_stat_val:]))
+            avg_stdevs_val.append(np.std(total_rewards_val[-ep_per_stat_val:]))  
+            avg_completion_val.append(np.average([i['flag_get'] for i in total_info_val[-ep_per_stat_val:]]))
 
             wandb.log({
                 "total_rewards_validation": total_rewards_val[-1],
@@ -436,7 +441,7 @@ def visualize(run_id, action_space, n_actions, lr=0.0001, exploration_min=0.02, 
             two_actions_vector = agent.cur_action_space[0, two_actions_index[0]]
             two_actions = vec_to_action(two_actions_vector.cpu()) # tuple of actions
             
-            # print(two_actions)
+            print(two_actions)
 
             # debugging info
             key = " | ".join([",".join(i) for i in two_actions])
