@@ -319,26 +319,26 @@ def train(
                    "max_time_per_ep": max_time_per_ep,
                    "avg_total_rewards": avg_rewards[-1],
                    "avg_std_dev": avg_stdevs[-1],
+                   # Log action distribution at the end of the episode
+                    "action_distribution": wandb.plot.bar(
+                        sizes=list(episode_action_count.values()),
+                        labels=list(episode_action_count.keys()),
+                        title="Action Distribution"
+                    )
                    })
         
         # Log cumulative action distribution at the end of the episode
-        wandb.log({
-            "cumulative_action_distribution": wandb.plot.stacked_bar(
-                chart_id="cumulative_action_distribution",
-                keys=list(cumulative_action_count.keys()),
-                values=list(cumulative_action_count.values()),
-                title="Cumulative Action Distribution",
-                xlabel="Episode",
-                ylabel="Count"
-            ),
-            # Log action distribution at the end of the episode
-            "action_distribution": wandb.plot.bar(
-                sizes=list(episode_action_count.values()),
-                labels=list(episode_action_count.keys()),
-                title="Action Distribution"
-            )
-        })
-
+        # wandb.log({
+        #     "cumulative_action_distribution": wandb.plot.stacked_bar(
+        #         chart_id="cumulative_action_distribution",
+        #         keys=list(cumulative_action_count.keys()),
+        #         values=list(cumulative_action_count.values()),
+        #         title="Cumulative Action Distribution",
+        #         xlabel="Episode",
+        #         ylabel="Count"
+        #     ),
+            
+        # })
 
         agent.decay_lr()
         agent.decay_exploration()
