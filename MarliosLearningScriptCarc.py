@@ -152,7 +152,7 @@ if __name__ == "__main__":
         pretrained=False, # use the pretrained model
         ep_per_stat=100, 
         gamma=0.9,
-        num_episodes=10,
+        num_episodes=args.num_episodes,
         lr=args.lr,
         lr_decay=args.lr_decay, # experimenting with no lr decay
         exploration_min=0.02,
