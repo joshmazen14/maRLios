@@ -262,8 +262,8 @@ def train(
             time_taken = time_total - info["time"]
             
             # update action count
-            cumulative_action_count[action] += 1
-            episode_action_count[action] += 1
+            cumulative_action_count[two_actions] += 1
+            episode_action_count[two_actions] += 1
         
             agent.remember(state, two_actions_index, reward, state_next, terminal)
             loss = agent.experience_replay(debug=debug)
