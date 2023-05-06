@@ -22,6 +22,7 @@ from toolkit.constants import *
 import wandb
 import psutil
 import os
+import plotly.graph_objs as go
 
 def make_env(env, actions=ACTION_SPACE):
     env = MaxAndSkipEnv(env, skip=2)
@@ -84,8 +85,6 @@ def train(
         num_episodes=1000, run_id=None, n_actions=20, debug = True, name=None, max_time_per_ep = 500, device=None, log=True, 
         hidden_shape=64, add_sufficient = True, training_stage = "train", validate_every = 50
     ):
-    
-    
 
     run_id = run_id or generate_epoch_time_id()
     # from looking at the model, time starts at 400
@@ -98,6 +97,17 @@ def train(
 
     #todo: add agent params as a setting/create different agents in diff functions to run 
     exploration_max = min(1, max(exploration_max, exploration_min))
+
+    # Convert the actions to tuples of tuples
+    action_space_keys = [" | ".join([",".join(action) for action in two_actions]) for two_actions in action_space]
+
+    # Initialize a dictionary to store the cumulative action count
+    cumulative_action_count = {}
+
+    # Count the occurrences of each unique action
+    for action in action_space_keys:
+        cumulative_action_count[action] = 0
+        # episode_action_count[action] = 0
 
     agent = DQNAgent(
                      state_space=env.observation_space.shape,
@@ -120,25 +130,27 @@ def train(
                      training_stage=training_stage,
                      add_sufficient=add_sufficient
                      )
-
-    wandb.init(
+    
+    if log:
+        wandb.init(
             # set the wandb project where this run will be logged
             project="my-awesome-project",
+        
             # track hyperparameters and run metadata
             config={
             "name": name or run_id,
             "run_id": run_id,
+            "model_architecture": str(agent.local_net),
             "lr": lr,
             "lr_decay": lr_decay,
             "exploration_decay": exploration_decay,
             "n_actions": n_actions,
             "gamma": gamma,
             "episodes": num_episodes,
-            "ep_per_stat": ep_per_stat,
-            "hidden_shape": hidden_shape,
-            "model_architecture": str(agent.local_net)
+            "ep_per_stat": ep_per_stat
             }
         )
+    
 
     # see if anyone can get this to work, i think it doesn't work on mps
     if device != 'mps' and log:
@@ -191,11 +203,18 @@ def train(
             
 
             # debugging info
-            key = " | ".join([",".join(i) for i in two_actions])
-            if key in action_freq:
-                action_freq[key] += 1
+            action_key = " | ".join([",".join(i) for i in two_actions])
+            if action_key in action_freq:
+                action_freq[action_key] += 1
             else:
-                action_freq[key] = 1
+                action_freq[action_key] = 1
+            # update action count
+            if action_key in cumulative_action_count:
+                cumulative_action_count[action_key] += 1
+            else:
+                cumulative_action_count[action_key] = 1
+
+
             
             steps += 1
             reward = 0
@@ -261,6 +280,26 @@ def train(
         losses = []
         # plot the line charts:
         time_taken = time_total - info["time"]
+        # Create a stacked bar chart using Plotly
+        data_episode_action_count = [go.Bar(x=[str(key) for key in action_freq.keys()], y=list(action_freq.values()), name="Actions")]
+        data_cumul_act_dist = [go.Bar(x=[str(key) for key in cumulative_action_count.keys()], y=list(cumulative_action_count.values()), name="Actions")]
+
+        layout_episode_action_count = go.Layout(
+            title="Cumulative Action Distribution",
+            xaxis=dict(title="Episode"),
+            yaxis=dict(title="Count"),
+            barmode="stack"
+        )
+        layout_cumul_act_dist = go.Layout(
+            title="Cumulative Action Distribution",
+            xaxis=dict(title="Episode"),
+            yaxis=dict(title="Count"),
+            barmode="stack"
+        )
+
+        fig_episode_action_count = go.Figure(data=data_episode_action_count, layout=layout_episode_action_count)
+        fig_cumul_act_dist = go.Figure(data=data_cumul_act_dist, layout=layout_cumul_act_dist)
+
         
         if log:
             wandb.log({"total reward" : total_reward, 
@@ -279,7 +318,9 @@ def train(
                         "avg_completion_rate_validation": np.mean(val_completion),
                         "total validation completions" : sum(val_completion),
                         "total_rewards_validaiton": total_validation_rewards[-1],
-                        "avg_std_dev_validation": np.std(total_validation_rewards[-avg_period:])
+                        "avg_std_dev_validation": np.std(total_validation_rewards[-avg_period:]),
+                         "cumulative_action_distribution": fig_cumul_act_dist,
+                        "episode_action_distribution": fig_episode_action_count,
                         })
 
 
@@ -326,7 +367,7 @@ def show_state(env, ep=0, info=""):
 
 def visualize(run_id, action_space, n_actions, lr=0.0001, exploration_min=0.02, ep_per_stat = 100, exploration_max = 0.1, 
               mario_env='SuperMarioBros-1-1-v0',  num_episodes=1000, log_stats = False, randomness = True,
-              add_sufficient = True, training_stage = "train", sample_every='action'):
+              add_sufficient = True, training_stage = "train", sample_every='action', hidden_shape=64, debug=False):
    
    
     fh = open(f'progress-{run_id}.txt', 'a')
@@ -360,7 +401,8 @@ def visualize(run_id, action_space, n_actions, lr=0.0001, exploration_min=0.02, 
                      n_actions=n_actions,  
                      training_stage=training_stage,
                      device='cpu',
-                     add_sufficient=add_sufficient)
+                     add_sufficient=add_sufficient,
+                     hidden_shape=hidden_shape)
     
     
     # num_episodes = 10
@@ -381,7 +423,7 @@ def visualize(run_id, action_space, n_actions, lr=0.0001, exploration_min=0.02, 
 
             show_state(env, ep_num)
             
-            two_actions_index, hidden = agent.act(state, prev_hidden_state)
+            two_actions_index, hidden = agent.act(state, prev_hidden_state, debug)
             two_actions_vector = agent.cur_action_space[0, two_actions_index[0]]
             two_actions = vec_to_action(two_actions_vector.cpu()) # tuple of actions
 
