@@ -60,10 +60,10 @@ class DQNSolver(nn.Module):
         sampled_actions - np.array with n x 8 
         prev_hidden_state - tuple of format(hidden, cell) for the hidden states
         '''
-        # add positional encodings
-        # sampled_actions=sampled_actions.detach().clone()
-        # indices = torch.arange(sampled_actions.shape[-1] // 2, sampled_actions.shape[-1])
-        # sampled_actions[:, :, indices] *= 2
+        #add positional encodings
+        sampled_actions=sampled_actions.detach().clone()
+        indices = torch.arange(sampled_actions.shape[-1] // 2, sampled_actions.shape[-1])
+        sampled_actions[:, :, indices] *= 2
 
 
         h_0 = prev_hidden_state
