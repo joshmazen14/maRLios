@@ -316,8 +316,8 @@ def train(
         data_cumul_act_dist = [go.Bar(x=[str(key) for key in cumulative_action_count.keys()], y=list(cumulative_action_count.values()), name="Actions")]
 
         layout_episode_action_count = go.Layout(
-            title="Cumulative Action Distribution",
-            xaxis=dict(title="Episode"),
+            title="Episode Action Distribution",
+            xaxis=dict(title="Action"),
             yaxis=dict(title="Count"),
             barmode="stack"
         )
