@@ -3,7 +3,7 @@ from toolkit.action_utils import *
 from toolkit.constants import *
 import torch 
 
-def validate_run(agent, env):
+def get_stats_run(agent, env):
     agent.subsample_actions()
     
     state = env.reset() # take the final dimension of shape 

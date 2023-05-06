@@ -320,7 +320,7 @@ def train(
                         "total validation completions" : sum(val_completion),
                         "total_rewards_validaiton": total_validation_rewards[-1],
                         "avg_std_dev_validation": np.std(total_validation_rewards[-avg_period:]),
-                         "cumulative_action_distribution": fig_cumul_act_dist,
+                        "cumulative_action_distribution": fig_cumul_act_dist,
                         "episode_action_distribution": fig_episode_action_count,
                         })
 
