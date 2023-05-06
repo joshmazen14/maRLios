@@ -44,6 +44,8 @@ class DQNSolver(nn.Module):
         self.fc = nn.Sequential(
             nn.Linear(hidden_shape+action_out, 32),
             nn.ReLU(),
+            nn.Linear(32, 32),
+            nn.ReLU(),
             nn.Linear(32, 1)
         )
 
@@ -58,7 +60,12 @@ class DQNSolver(nn.Module):
         sampled_actions - np.array with n x 8 
         prev_hidden_state - tuple of format(hidden, cell) for the hidden states
         '''
-      
+        # add positional encodings
+        sampled_actions=sampled_actions.detach().clone()
+        indices = torch.arange(sampled_actions.shape[-1] // 2, sampled_actions.shape[-1])
+        sampled_actions[:, :, indices] *= 2
+
+
         h_0 = prev_hidden_state
         conv_out = self.conv(x).view(x.size()[0], -1) # has shape of (1, 1024) => (batch, output size)
 
@@ -99,7 +106,7 @@ class DQNAgent:
         if device == None:
             self.device ='cpu'
             if torch.cuda.is_available():
-                self.device = 'cuda:'
+                self.device = 'cuda'
             elif torch.backends.mps.is_available():
                 self.device = 'mps'
         else:
@@ -193,7 +200,7 @@ class DQNAgent:
         
         return STATE, ACTION, REWARD, STATE2, DONE, SPACE, HIDDEN.detach()
 
-    def act(self, state, prev_hidden_state):
+    def act(self, state, prev_hidden_state, debug=False):
         '''
         Returns the action index and hidden state
         '''
@@ -207,7 +214,10 @@ class DQNAgent:
         if random.random() < self.exploration_rate:  
             rand_ind = random.randrange(0, self.cur_action_space.shape[1])
             ind = torch.tensor(rand_ind).unsqueeze(0) # wiht some probability, choose a random index
-        
+        if debug:
+            print("Action: ", ind)
+            print(results)
+
         return ind.detach().cpu(), hidden.detach()
 
     def copy_model(self):
