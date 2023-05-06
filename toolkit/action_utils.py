@@ -35,7 +35,8 @@ def sample_actions(action_set, n_actions, add_sufficient=False, training_stage =
 
     dif = 0
     if add_sufficient:
-        dif = 2
+        # dif = 2
+        dif = 3 # this will add noop by default
 
     sampled_idx = random.sample(range(len(action_set)), n_actions-dif)
     cur_actions = [action_set[i] for i in sampled_idx]
@@ -49,6 +50,7 @@ def sample_actions(action_set, n_actions, add_sufficient=False, training_stage =
         suff_right_idx = np.random.randint(0, len(sufficient_right))
         action_vectors[n_actions - dif] = action_to_vec(sufficient_jump[suff_jump_idx])
         action_vectors[n_actions - dif+1] = action_to_vec(sufficient_right[suff_right_idx])
+        #adding noop as well
 
     return action_vectors
 
