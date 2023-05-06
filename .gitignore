@@ -3,3 +3,4 @@ lib/*
 *.txt
 *.pyc
 wandb/*
+ModelCheckpoints/*

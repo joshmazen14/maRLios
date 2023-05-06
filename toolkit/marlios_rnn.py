@@ -44,6 +44,8 @@ class DQNSolver(nn.Module):
         self.fc = nn.Sequential(
             nn.Linear(hidden_shape+action_out, 32),
             nn.ReLU(),
+            nn.Linear(32, 32),
+            nn.ReLU(),
             nn.Linear(32, 1)
         )
 
