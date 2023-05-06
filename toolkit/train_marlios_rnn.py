@@ -19,6 +19,7 @@ from toolkit.gym_env import *
 from toolkit.action_utils import *
 from toolkit.marlios_rnn import *
 from toolkit.constants import *
+from toolkit.train_test_samples import *
 import wandb
 import psutil
 import os
@@ -452,6 +453,7 @@ def visualize(run_id, action_space, n_actions, lr=0.0001, exploration_min=0.02, 
             state_next = torch.Tensor([state_next])
             reward = torch.tensor([reward]).unsqueeze(0)        
             terminal = torch.tensor([int(terminal)]).unsqueeze(0)
+            print("X position: ", info['x_pos'])
             
             
             agent.remember(state, two_actions_index, reward, state_next, terminal, hidden)
