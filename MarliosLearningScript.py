@@ -56,7 +56,10 @@ if __name__ == "__main__":
     try:
         action_space = getattr(train_test_samples, args.actions)
     except AttributeError as e:
-        raise ValueError("Invalid actions argument.")
+        try:
+            action_space = getattr(action_constants, args.actions)
+        except AttributeError as e:
+            raise ValueError("Invalid actions argument.")
     
     if (not args.n_actions):
         n_actions = len(action_space) + 2 if args.sample_actions else len(action_space)
