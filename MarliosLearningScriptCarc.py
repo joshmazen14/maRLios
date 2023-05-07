@@ -171,7 +171,7 @@ if __name__ == "__main__":
     
     
     train(
-        name='RNN simple movement',
+        name='RNN simple movement - testing',
         training_mode=True, 
         pretrained=False, # use the pretrained model
         ep_per_stat=100, 

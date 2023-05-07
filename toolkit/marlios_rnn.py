@@ -61,9 +61,9 @@ class DQNSolver(nn.Module):
         prev_hidden_state - tuple of format(hidden, cell) for the hidden states
         '''
         #add positional encodings
-        sampled_actions=sampled_actions.detach().clone()
-        indices = torch.arange(sampled_actions.shape[-1] // 2, sampled_actions.shape[-1])
-        sampled_actions[:, :, indices] *= 2
+        # sampled_actions=sampled_actions.detach().clone()
+        # indices = torch.arange(sampled_actions.shape[-1] // 2, sampled_actions.shape[-1])
+        # sampled_actions[:, :, indices] *= 2
 
 
         h_0 = prev_hidden_state
@@ -112,8 +112,11 @@ class DQNAgent:
         else:
             self.device = device
         
-
-        self.subsample_actions()
+        if (not self.add_sufficient) and n_actions == len(self.action_space):
+            self.cur_action_space = torch.from_numpy(toolkit.action_utils.action_set_to_vec(self.action_space, self.n_actions)
+                                                    ).to(torch.float32).to(self.device).unsqueeze(0)
+        else:
+            self.subsample_actions()
 
         self.double_dq = double_dq
         self.pretrained = pretrained

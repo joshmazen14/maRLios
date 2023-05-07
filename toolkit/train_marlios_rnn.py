@@ -251,7 +251,7 @@ def train(
 
         
         # change the action space
-        agent.subsample_actions()
+        #agent.subsample_actions()
 
         # track stats
         total_info.append(info)
@@ -455,8 +455,8 @@ def visualize(run_id, action_space, n_actions, lr=0.0001, exploration_min=0.02, 
             
             
             agent.remember(state, two_actions_index, reward, state_next, terminal, hidden)
-            if sample_every == 'action':
-                agent.subsample_actions()
+            # if sample_every == 'action':
+            #     agent.subsample_actions()
             # lstm new
             prev_hidden_state = hidden
             del hidden
@@ -466,11 +466,10 @@ def visualize(run_id, action_space, n_actions, lr=0.0001, exploration_min=0.02, 
             if terminal:
                 break
 
-        #agent.subsample_actions() 
         total_info.append(info)
         total_rewards.append(total_reward)
-        if sample_every != 'action':
-            agent.subsample_actions()
+        # if sample_every != 'action':
+        #     agent.subsample_actions()
 
         if log_stats:
             with open(f'visualized_rewards-{run_id}.txt', 'a') as f:

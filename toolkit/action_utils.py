@@ -51,6 +51,20 @@ def sample_actions(action_set, n_actions, add_sufficient=False, training_stage =
 
     return action_vectors
 
+def action_set_to_vec(action_set, n_actions):
+    '''
+    action_set - the actions available to the agent
+    Instead of sampling -- just translate into vectors
+    '''
+    action_vectors = np.zeros((n_actions, 10))
+
+    for i, actions in enumerate(action_set):
+        vec = action_to_vec(actions)
+        action_vectors[i] = vec
+
+    return action_vectors
+
+
 def vec_to_action(vec):
     '''
     vector is a combination of two actions 
