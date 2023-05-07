@@ -10,11 +10,11 @@ def get_stats_run(agent, env):
     state = torch.Tensor([state])
     total_reward = 0
     info = None
-    prev_hidden_state = torch.zeros(1, 1, agent.hidden_shape).to(agent.device)
+    # prev_hidden_state = torch.zeros(1, 1, agent.hidden_shape).to(agent.device)
 
     while True:
         
-        two_actions_index, hidden = agent.act(state, prev_hidden_state)
+        two_actions_index = agent.act(state)
         two_actions_vector = agent.cur_action_space[0, two_actions_index[0]]
         two_actions = vec_to_action(two_actions_vector.cpu()) # tuple of actions
         
@@ -35,7 +35,7 @@ def get_stats_run(agent, env):
         terminal = torch.tensor([int(terminal)]).unsqueeze(0)
         
         # lstm new
-        prev_hidden_state = hidden
+        # prev_hidden_state = hidden
         # change up action space
         state = state_next
         if terminal:
