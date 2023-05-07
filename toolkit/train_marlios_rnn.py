@@ -500,7 +500,7 @@ def validate_run(agent, training_stage, env):
 
     agent.action_space = VALIDATION_SET
     agent.training_stage = training_stage
-    agent.subsample_actions()
+    #agent.subsample_actions()
     
     state = env.reset() # take the final dimension of shape 
     state = torch.Tensor([state])

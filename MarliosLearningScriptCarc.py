@@ -185,7 +185,7 @@ if __name__ == "__main__":
         action_space=SIMPLE_MOVEMENT,
         n_actions=len(SIMPLE_MOVEMENT),
         debug=True,
-        max_time_per_ep=100, # limit runs to a fewer seconds,
+        max_time_per_ep=200, # limit runs to a fewer seconds,
         log =True,
         add_sufficient=False,
         training_stage="train",
